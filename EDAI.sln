@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EDAI", "EDAI.csproj", "{A470770F-3257-4459-937B-FB3AD9CD3B75}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A470770F-3257-4459-937B-FB3AD9CD3B75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A470770F-3257-4459-937B-FB3AD9CD3B75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A470770F-3257-4459-937B-FB3AD9CD3B75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A470770F-3257-4459-937B-FB3AD9CD3B75}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,20 @@
+﻿@page "/"
+@inject Dictionary<string, object> Configuration
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<p>MY_API_KEY Variable: @test1</p>
+<p>HOME Variable: @test2</p>
+<p>Environment: @test3</p>
+<p>Appsettings: @Configuration["ApiSettings:ApiKey"]</p>
+
+@code
+{
+    private string test1 = Environment.GetEnvironmentVariable("MY_API_KEY");
+    private string test2 = Environment.GetEnvironmentVariable("HOME");
+    private string test3 = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+}

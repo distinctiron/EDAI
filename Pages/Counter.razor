@@ -1,0 +1,67 @@
+﻿@page "/counter"
+@using EDAI.Services
+@inject WordFileReader wordFileReader
+@inject OpenAiService openAiService
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<InputFile OnChange="@SingleUpload" />
+
+<p>@test</p>
+
+<!--<p>@test2</p>-->
+
+@code {
+    private int currentCount = 0;
+
+    //private readonly IConfiguration _configuration = configuration;
+    
+    private string fileContent;
+    
+    private string test = Environment.GetEnvironmentVariable("MY_API_KEY");
+
+    //private readonly string test2 = configuration.GetSection("ApiSettings:ApiKey").Value;
+    
+    
+
+    private void IncrementCount()
+    {
+        currentCount++;
+        Console.WriteLine(test);
+    }
+    
+    private async Task SingleUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file.ContentType != "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        {
+            fileContent = "Invalid file type";
+            return;
+        }
+
+        using var memoryStream = new MemoryStream();
+
+        await file.OpenReadStream().CopyToAsync(memoryStream);
+
+        memoryStream.Position = 0;
+
+        //MemoryStream stream = new MemoryStream();
+        
+        //using var stream = file.OpenReadStream();
+        //fileContent = "stream is open";
+        //fileContent = await wordFileReader.ReadFileAsync(memoryStream);
+
+        fileContent = await openAiService.helloWordAsync();
+
+        //fileContent = "stream is read";
+        //do something with bytes
+    }
+
+}
