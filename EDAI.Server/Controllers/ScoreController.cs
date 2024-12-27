@@ -27,7 +27,7 @@ public class ScoreController(EdaiContext context) : ControllerBase
     {
         context.Scores.Add(score);
         context.SaveChanges();
-        return Results.Created();
+        return Results.Ok(score.ScoreId);
     }
 
     [HttpDelete("id:int", Name = "DeleteScore")]

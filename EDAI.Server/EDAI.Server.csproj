@@ -35,8 +35,4 @@
       <ProjectReference Include="..\EDAI.Shared\EDAI.Shared.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Migrations\" />
-    </ItemGroup>
-
 </Project>

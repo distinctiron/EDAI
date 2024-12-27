@@ -44,6 +44,9 @@ namespace EDAI.Server.Migrations
                     b.Property<int>("AssignmentId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("File")
+                        .HasColumnType("BLOB");
+
                     b.Property<int>("ScoreId")
                         .HasColumnType("INTEGER");
 

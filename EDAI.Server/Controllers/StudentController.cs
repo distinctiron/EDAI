@@ -27,7 +27,7 @@ public class StudentController(EdaiContext context) : ControllerBase
     {
         context.Students.Add(student);
         context.SaveChanges();
-        return Results.Created();
+        return Results.Ok(student.StudentId);
     }
 
     [HttpDelete("id:int", Name = "DeleteStudent")]

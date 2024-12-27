@@ -26,7 +26,7 @@ public class AssignmentController(EdaiContext context) : ControllerBase
     {
         context.Assignments.Add(assignment);
         context.SaveChanges();
-        return Results.Created();
+        return Results.Ok(assignment.AssignmentId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteAssignment")]

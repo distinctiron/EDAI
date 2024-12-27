@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EDAI.Server.Migrations
 {
     [DbContext(typeof(EdaiContext))]
-    [Migration("20241222005925_createDatabase")]
+    [Migration("20241227200340_createDatabase")]
     partial class createDatabase
     {
         /// <inheritdoc />
@@ -46,6 +46,9 @@ namespace EDAI.Server.Migrations
 
                     b.Property<int>("AssignmentId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("File")
+                        .HasColumnType("BLOB");
 
                     b.Property<int>("ScoreId")
                         .HasColumnType("INTEGER");

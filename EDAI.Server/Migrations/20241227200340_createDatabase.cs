@@ -62,6 +62,7 @@ namespace EDAI.Server.Migrations
                 {
                     EssayId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    File = table.Column<byte[]>(type: "BLOB", nullable: true),
                     AssignmentId = table.Column<int>(type: "INTEGER", nullable: false),
                     StudentId = table.Column<int>(type: "INTEGER", nullable: false),
                     ScoreId = table.Column<int>(type: "INTEGER", nullable: false)

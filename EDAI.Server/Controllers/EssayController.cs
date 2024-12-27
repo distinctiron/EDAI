@@ -1,6 +1,7 @@
 ﻿using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -11,14 +12,21 @@ public class EssayController(EdaiContext context) : ControllerBase
     [HttpGet(Name = "GetEssays")]
     public IEnumerable<Essay> GetEssays()
     {
-        return context.Essays;
+        return context.Essays
+            .Include( e => e.Assignment)
+            .Include(e => e.Student)
+            .Include(e => e.Score);
     }
 
     [HttpGet("{id:int}", Name = "GetEssaysById")]
-    public IResult GetById(int id)
+    public Essay? GetById(int id)
     {
-        var essay = context.Essays.Find(id);
-        return essay == null ? Results.NotFound() : Results.Ok(essay);
+        var essay = context.Essays
+            .Include(e => e.Assignment)
+            .Include(e => e.Student)
+            .Include(e => e.Score)
+            .SingleOrDefault(e => e.EssayId == id);
+        return essay;
     }
 
     [HttpPost(Name = "AddEssay")]
@@ -26,7 +34,7 @@ public class EssayController(EdaiContext context) : ControllerBase
     {
         context.Essays.Add(essay);
         context.SaveChanges();
-        return Results.Created();
+        return Results.Ok(essay.EssayId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteEssay")]
@@ -45,5 +53,28 @@ public class EssayController(EdaiContext context) : ControllerBase
         context.Essays.Update(essay);
         context.SaveChanges();
         return Results.Ok(essay);
+    }
+
+    [HttpPost("{id:int}", Name = "UploadFile")]
+    public IResult UploadFile([FromRoute]int id, IFormFile file)
+    {
+        var essay = context.Essays.Find(id);
+        if (essay == null) return Results.NotFound();
+        
+        MemoryStream memoryStream = new MemoryStream();
+        file.CopyTo(memoryStream);
+        essay.File = memoryStream.ToArray();
+        context.SaveChanges();
+
+        return Results.Ok(essay);
+    }
+
+    [HttpGet("{id:int}/file", Name = "DownloadFile")]
+    public IResult DownloadFile(int id)
+    {
+        var essay = context.Essays.Find(id);
+        if (essay == null) return Results.NotFound();
+        var bytes = context.Essays.Find(id)!.File!;
+        return Results.File(bytes, "application/octet-stream", "essayName.pdf");
     }
 }
