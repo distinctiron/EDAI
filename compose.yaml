@@ -1,0 +1,6 @@
+﻿services:
+  edai.server:
+    image: edai.server
+    build:
+      context: .
+      dockerfile: EDAI.Server/Dockerfile
