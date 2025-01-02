@@ -3,9 +3,12 @@
 public class Score
 {
     public int ScoreId { get; set; }
+
+    public EssayFeedback EssayFeedback { get; set; }
+    
     public float OverallScore { get; set; }
-    public float ScoreTheme1 { get; set; }
-    public float ScoreTheme2 { get; set; }
-    public float ScoreThemeN { get; set; }
-    public ICollection<Essay>? Essays { get; } = new List<Essay>();
+    public float GrammarScore { get; set; }
+    public float EloquenceScore { get; set; }
+    public float AssignmentAnswerScore { get; set; }
+    public Essay Answer { get; } = new Essay();
 }

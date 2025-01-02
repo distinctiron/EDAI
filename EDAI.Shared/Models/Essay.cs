@@ -4,6 +4,9 @@ public class Essay
 {
     public int EssayId { get; set; }
     public byte[]? File { get; set; }
+
+    public IndexedContent? EssayAnswer { get; set; }
+    
     public int AssignmentId { get; set; }
     public Assignment? Assignment { get; set; } = null!;
     public int StudentId { get; set; }

@@ -9,6 +9,8 @@ public class Assignment
     public string Name { get; set; }
     [Required]
     public string Description { get; set; }
+    
+    public byte[]? ReferenceTextFile { get; set; }
 
     public ICollection<Essay>? Essays { get; } = new List<Essay>();
 }
