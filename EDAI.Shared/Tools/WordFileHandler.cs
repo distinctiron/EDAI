@@ -11,6 +11,9 @@ namespace EDAI.Shared.Tools;
 
 public class WordFileHandler
 {
+    
+    // This class needs a big refactor as methods are too long, contain too many parameters and have non-obvious side effects.
+    // This will be done once UI is functional to ensure lower lead times for functional refactoring
     public async Task<string> ReadFileAsync(Stream stream)
     {
         return await Task.Run(() =>
@@ -157,122 +160,6 @@ public class WordFileHandler
 
         return currentHighestCommentId;
     }
-
-    public async Task FindText<T>(Stream stream, string searchText) where T : OpenXmlCompositeElement
-    {
-        stream.Position = 0;
-
-        using (var wordDoc = WordprocessingDocument.Open(stream, false))
-        {
-            var texts = wordDoc.MainDocumentPart.Document.Body.Descendants<T>()
-                .Where(t => t.InnerText.Contains(searchText));
-            
-        }
-    }
-
-    public async Task AddFeedback(Stream stream)
-    {
-        stream.Position = 0;
-        
-        using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(stream, true))
-        {
-            if (wordDoc is null)
-            {
-                throw new ArgumentNullException("Document is null");
-            }
-
-            MainDocumentPart mainDocumentPart = wordDoc.MainDocumentPart ?? wordDoc.AddMainDocumentPart();
-            mainDocumentPart.Document ??= new Document();
-            mainDocumentPart.Document.Body ??= mainDocumentPart.Document.AppendChild(new Body());
-            var body = wordDoc.MainDocumentPart!.Document!.Body;
-
-            var part = wordDoc.MainDocumentPart.StyleDefinitionsPart;
-
-            if (part is null)
-            {
-                part = wordDoc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
-                var root = new Styles();
-                root.Save(part);
-            }
-            
-            var style = new Style()
-            {
-                Type = StyleValues.Paragraph,
-                StyleId = "FeedbackStyle",
-                CustomStyle = true,
-                Default = false
-            };
-                
-            Aliases aliases1 = new Aliases() { Val = "Alias" };
-            AutoRedefine autoredefine1 = new AutoRedefine() { Val = OnOffOnlyValues.Off };
-            BasedOn basedon1 = new BasedOn() { Val = "Normal" };
-            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "OverdueAmountChar" };
-            Locked locked1 = new Locked() { Val = OnOffOnlyValues.Off };
-            PrimaryStyle primarystyle1 = new PrimaryStyle() { Val = OnOffOnlyValues.On };
-            StyleHidden stylehidden1 = new StyleHidden() { Val = OnOffOnlyValues.Off };
-            SemiHidden semihidden1 = new SemiHidden() { Val = OnOffOnlyValues.Off };
-            StyleName styleName1 = new StyleName() { Val = "Feedback" };
-            NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-            UIPriority uipriority1 = new UIPriority() { Val = 1 };
-            UnhideWhenUsed unhidewhenused1 = new UnhideWhenUsed() { Val = OnOffOnlyValues.On };
-                
-            style.Append(aliases1);
-            style.Append(autoredefine1);
-            style.Append(basedon1);
-            style.Append(linkedStyle1);
-            style.Append(locked1);
-            style.Append(primarystyle1);
-            style.Append(stylehidden1);
-            style.Append(semihidden1);
-            style.Append(styleName1);
-            style.Append(nextParagraphStyle1);
-            style.Append(uipriority1);
-            style.Append(unhidewhenused1);
-
-            var styleRunProperties = new StyleRunProperties();
-            var italic = new Italic();
-            var color = new Color() { Val = "FF0000" };
-            styleRunProperties.Append(color);
-            styleRunProperties.Append(italic);
-
-            style.Append(styleRunProperties);
-
-            if (part.Styles is not null)
-            {
-                part.Styles.Append(style);
-            }
-            else
-            {
-                part.Styles = new Styles();
-                part.Styles.Append(style);
-            }
-            
-            if (body != null)
-            {
-                var paragraph = new Paragraph();
-                var run = new Run();
-
-                paragraph.AppendChild(run);
-                
-                var feedback = "Here is your feedback";
-                run.AppendChild(new Text(feedback));
-
-                if (!paragraph.Elements<ParagraphProperties>().Any())
-                {
-                    paragraph.PrependChild<ParagraphProperties>(new ParagraphProperties());
-                }
-
-                if (paragraph.ParagraphProperties.ParagraphStyleId is null)
-                {
-                    paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId();
-                }
-
-                paragraph.ParagraphProperties.ParagraphStyleId.Val = "FeedbackStyle";
-                
-                body.AppendChild(paragraph);
-            }
-        }
-    }
     
     public async Task AddFeedback(Stream stream, string feedback, System.Drawing.Color feedbackColor)
     {
@@ -298,48 +185,8 @@ public class WordFileHandler
                 var root = new Styles();
                 root.Save(part);
             }
-            
-            var style = new Style()
-            {
-                Type = StyleValues.Paragraph,
-                StyleId = "FeedbackStyle",
-                CustomStyle = true,
-                Default = false
-            };
-                
-            Aliases aliases1 = new Aliases() { Val = "Alias" };
-            AutoRedefine autoredefine1 = new AutoRedefine() { Val = OnOffOnlyValues.Off };
-            BasedOn basedon1 = new BasedOn() { Val = "Normal" };
-            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "OverdueAmountChar" };
-            Locked locked1 = new Locked() { Val = OnOffOnlyValues.Off };
-            PrimaryStyle primarystyle1 = new PrimaryStyle() { Val = OnOffOnlyValues.On };
-            StyleHidden stylehidden1 = new StyleHidden() { Val = OnOffOnlyValues.Off };
-            SemiHidden semihidden1 = new SemiHidden() { Val = OnOffOnlyValues.Off };
-            StyleName styleName1 = new StyleName() { Val = "Feedback" };
-            NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-            UIPriority uipriority1 = new UIPriority() { Val = 1 };
-            UnhideWhenUsed unhidewhenused1 = new UnhideWhenUsed() { Val = OnOffOnlyValues.On };
-                
-            style.Append(aliases1);
-            style.Append(autoredefine1);
-            style.Append(basedon1);
-            style.Append(linkedStyle1);
-            style.Append(locked1);
-            style.Append(primarystyle1);
-            style.Append(stylehidden1);
-            style.Append(semihidden1);
-            style.Append(styleName1);
-            style.Append(nextParagraphStyle1);
-            style.Append(uipriority1);
-            style.Append(unhidewhenused1);
 
-            var styleRunProperties = new StyleRunProperties();
-            var italic = new Italic();
-            var color = new Color() { Val = ColorToHex(feedbackColor) };
-            styleRunProperties.Append(color);
-            styleRunProperties.Append(italic);
-
-            style.Append(styleRunProperties);
+            var style = GetNewStyle(feedbackColor);
 
             if (part.Styles is not null)
             {
@@ -377,6 +224,53 @@ public class WordFileHandler
         }
     }
 
+    private Style GetNewStyle(System.Drawing.Color styleColor)
+    {
+        var style = new Style()
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "FeedbackStyle",
+                CustomStyle = true,
+                Default = false
+            };
+                
+            Aliases aliases1 = new Aliases() { Val = "Alias" };
+            AutoRedefine autoredefine1 = new AutoRedefine() { Val = OnOffOnlyValues.Off };
+            BasedOn basedon1 = new BasedOn() { Val = "Normal" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "OverdueAmountChar" };
+            Locked locked1 = new Locked() { Val = OnOffOnlyValues.Off };
+            PrimaryStyle primarystyle1 = new PrimaryStyle() { Val = OnOffOnlyValues.On };
+            StyleHidden stylehidden1 = new StyleHidden() { Val = OnOffOnlyValues.Off };
+            SemiHidden semihidden1 = new SemiHidden() { Val = OnOffOnlyValues.Off };
+            StyleName styleName1 = new StyleName() { Val = "Feedback" };
+            NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+            UIPriority uipriority1 = new UIPriority() { Val = 1 };
+            UnhideWhenUsed unhidewhenused1 = new UnhideWhenUsed() { Val = OnOffOnlyValues.On };
+                
+            style.Append(aliases1);
+            style.Append(autoredefine1);
+            style.Append(basedon1);
+            style.Append(linkedStyle1);
+            style.Append(locked1);
+            style.Append(primarystyle1);
+            style.Append(stylehidden1);
+            style.Append(semihidden1);
+            style.Append(styleName1);
+            style.Append(nextParagraphStyle1);
+            style.Append(uipriority1);
+            style.Append(unhidewhenused1);
+
+            var styleRunProperties = new StyleRunProperties();
+            var italic = new Italic();
+            var color = new Color() { Val = ColorToHex(styleColor) };
+            styleRunProperties.Append(color);
+            styleRunProperties.Append(italic);
+
+            style.Append(styleRunProperties);
+
+            return style;
+    }
+    
     private string ColorToHex(System.Drawing.Color color)
     {
         return $"{color.R:X2}{color.G:X2}{color.B:X2}";
