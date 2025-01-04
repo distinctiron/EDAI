@@ -1,0 +1,109 @@
+@page "/fileupload"
+@using EDAI.Shared.Models
+
+
+<PageTitle>File Upload</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">File Upload</MudText>
+
+<MudGrid>
+    <MudItem xs="2">
+        <MudSelect @bind-Value="_assignment" Placeholder="Select Assignment">
+            @foreach (var assignment in _assignments)
+            {
+                <MudSelectItem Value="assignment">@assignment</MudSelectItem>
+            }
+        </MudSelect>        
+    </MudItem>
+    <MudItem xs="2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create">Create Assignment</MudButton>
+    </MudItem>
+    @if (!String.IsNullOrEmpty(_assignment))
+    {
+        <MudItem xs="2">
+            <MudSelect @bind-Value="_assignmentClass" Placeholder="Select Class">
+                @foreach (var assignmentClass in _assignmentClasses)
+                {
+                    <MudSelectItem Value="assignmentClass">@assignmentClass</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Add">Create Class</MudButton>
+        </MudItem>
+    }
+    <MudItem xs="2">
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".docx" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" 
+                           Disabled="@(String.IsNullOrEmpty(_assignment) || String.IsNullOrEmpty(_assignmentClass))">
+                    Upload Files
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>        
+    </MudItem>
+    @if (files.Any())
+    {
+        <MudItem xs = "12">
+            <div class="d-flex flex-wrap mt-4">
+                <MudSwitch @bind-Value="_editable" Color="Color.Primary">Edit</MudSwitch>
+                <MudSwitch @bind-Value="_select_for_review" Color="Color.Primary">Select Files</MudSwitch>
+            </div>
+
+            <MudDataGrid MultiSelection="true" T="IBrowserFile" Items="@files" ReadOnly="@(!_editable)" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" @bind-SelectedItems="selectedFiles">
+                <Columns>
+                    <SelectColumn T="IBrowserFile" Hidden="@(!_select_for_review)"/>
+                    <PropertyColumn Property="x => x.Name" Title="File Name" Editable="false"/>
+                    <PropertyColumn Property="x => x.Size" Title="Size" Editable="false"/>
+                    <PropertyColumn Property="x => x.ContentType" Title="File Type" Editable="false"/>
+                    <PropertyColumn Property="x => x.LastModified" Title="Last Modified" Editable="false"/>
+                </Columns>
+            </MudDataGrid>
+        </MudItem>
+        
+        <MudItem xs = "2">
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Feedback" Disabled="@(!selectedFiles.Any())">
+                Review Files
+            </MudButton>
+        </MudItem>
+        <MudItem xs = "2">
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Download" Disabled="@(!selectedFiles.Any())">
+                Download Files
+            </MudButton>
+        </MudItem>
+        <MudItem>
+            
+        </MudItem>
+    }
+</MudGrid>
+
+
+
+@code {
+    private IList<IBrowserFile> files = new List<IBrowserFile>();
+
+    private IList<Student> students = new List<Student>();
+
+    private HashSet<IBrowserFile> selectedFiles = new HashSet<IBrowserFile>();
+
+    private bool _editable;
+
+    private bool _select_for_review;
+
+    private string _assignment;
+
+    private string[] _assignments = { "James Rebanks", "Gatsby", "Letter to the future" };
+
+    private string _assignmentClass;
+    
+    private string[] _assignmentClasses = { "1x", "1y", "1v" };
+
+    private void UploadFiles(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            this.files.Add(file);
+        }
+    }
+
+}

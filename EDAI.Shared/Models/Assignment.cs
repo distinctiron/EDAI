@@ -9,6 +9,8 @@ public class Assignment
     public string Name { get; set; }
     [Required]
     public string Description { get; set; }
+
+    public bool Open { get; set; } = true;
     
     public byte[]? ReferenceTextFile { get; set; }
 

@@ -4,6 +4,8 @@ public class Score
 {
     public int ScoreId { get; set; }
 
+    public int EssayFeedbackId { get; set; }
+    
     public EssayFeedback EssayFeedback { get; set; }
     
     public float OverallScore { get; set; }
