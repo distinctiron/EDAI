@@ -1,9 +1,10 @@
-@page "/essayoverview"
+@page "/manage-essays"
 @using EDAI.Shared.Models
+@inject HttpClient _Client
 
-<PageTitle>Essay Overview</PageTitle>
+<PageTitle>Manage Essays</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Essay Overview</MudText>
+<MudText Typo="Typo.h3" GutterBottom="true">Manage Essays</MudText>
 
 <MudGrid>
     <MudItem>
@@ -28,7 +29,7 @@
 
 @code
 {
-    private IEnumerable<Essay> Essays = new List<Essay>();
+    private IEnumerable<Essay> Essays;
 
     private string _searchString;
 
@@ -44,6 +45,12 @@
             return true;
         return false;
     };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Essays = await _Client.GetFromJsonAsync<IEnumerable<Essay>>("GetEssays");
+    }
+
 
 }
 

@@ -1,0 +1,53 @@
+@page "/manage-students"
+@using EDAI.Shared.Models
+@inject HttpClient _Client
+
+<PageTitle>Manage Students</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Manage Students</MudText>
+
+<MudGrid>
+    <MudItem>
+        <MudDataGrid T="Student" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" >
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Your Students</MudText>
+                <MudSpacer/>
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+                </MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Class"></PropertyColumn>
+                <PropertyColumn Property="x => x.FirstName"></PropertyColumn>
+                <PropertyColumn Property="x => x.LastName"></PropertyColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T = "Essay"/>
+            </PagerContent>
+        </MudDataGrid>
+        <MudButton OnClick="@AddItem" Color="@Color.Success" Class="add-item-btn">Add Item</MudButton>
+    </MudItem>
+</MudGrid>
+
+@code
+{
+    private IEnumerable<Student> _students;
+
+    private string _searchString;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _students = await _Client.GetFromJsonAsync<IEnumerable<Student>>("GetStudents");
+    }
+
+    void AddItem()
+    {
+        _students.Append(new Student
+        {
+            Class = "Student Class",
+            FirstName = "First Name",
+            LastName = "Last Name"
+        });
+    }
+}
+
+

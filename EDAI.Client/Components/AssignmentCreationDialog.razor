@@ -1,0 +1,40 @@
+<h3>Create Assignment</h3>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudForm @ref="form" @bind-IsValid="@_validForm" @bind-Errors="@errors">
+            <MudTextField T="string" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
+            <MudTextField T="string" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment" 
+                          Variant="Variant.Outlined" Lines="6" />
+            <MudSelect T="string" Label="Class" MultiSelection="true">
+                @foreach (var studentClass in studentClasses)
+                {
+                    <MudSelectItem T = "string">@studentClass</MudSelectItem>
+                }
+            </MudSelect>
+            <div class="d-flex align-center justify-space-between">
+                <MudFileUpload T="IBrowserFile" Accept=".pdf" Required="false">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.AttachFile">
+                            Attach Reference File
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_validForm)" Class="ml-auto">Create</MudButton>
+            </div>
+        </MudForm>
+    </MudItem>
+</MudGrid>
+
+@code {
+
+    private bool _validForm;
+    private string[] errors = { };
+    private MudForm form;
+    private string[] studentClasses= {
+        "1x","1y","2a"
+    };
+
+}

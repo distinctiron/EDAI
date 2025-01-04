@@ -1,5 +1,7 @@
 @page "/fileupload"
+@using EDAI.Client.Components
 @using EDAI.Shared.Models
+@inject IDialogService DialogService
 
 
 <PageTitle>File Upload</PageTitle>
@@ -16,7 +18,7 @@
         </MudSelect>        
     </MudItem>
     <MudItem xs="2">
-        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create">Create Assignment</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create Assignment</MudButton>
     </MudItem>
     @if (!String.IsNullOrEmpty(_assignment))
     {
@@ -104,6 +106,17 @@
         {
             this.files.Add(file);
         }
+    }
+
+    private Task OpenDialogAsync()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            CloseButton = true,
+        };
+
+        return DialogService.ShowAsync<AssignmentCreationDialog>("Create Assignment", options);
     }
 
 }
