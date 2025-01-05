@@ -45,7 +45,7 @@
             ReferenceHandler = ReferenceHandler.Preserve,
             PropertyNameCaseInsensitive = true
         };
-        _students = await _Client.GetFromJsonAsync<IEnumerable<Student>>("Student", options);
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student", options);
     }
     
     private Func<Student, bool> _search => x =>
