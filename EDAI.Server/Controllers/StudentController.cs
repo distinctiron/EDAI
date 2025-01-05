@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared;
 using EDAI.Shared.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -12,10 +13,10 @@ public class StudentController(EdaiContext context) : ControllerBase
     [HttpGet(Name = "GetStudents")]
     public IEnumerable<Student> GetStudents()
     {
-        return context.Students;
+        return context.Students.Include( s => s.Essays);
     }
 
-    [HttpGet("id:int", Name = "GetStudentById")]
+    [HttpGet("{id:int}", Name = "GetStudentById")]
     public IResult GetById(int id)
     {
         var student = context.Students.Find(id);
@@ -30,7 +31,7 @@ public class StudentController(EdaiContext context) : ControllerBase
         return Results.Ok(student.StudentId);
     }
 
-    [HttpDelete("id:int", Name = "DeleteStudent")]
+    [HttpDelete("{id:int}", Name = "DeleteStudent")]
     public IResult DeleteStudent(int id)
     {
         var student = context.Students.Find(id);

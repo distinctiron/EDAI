@@ -1,4 +1,6 @@
 @page "/manage-students"
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @using EDAI.Shared.Models
 @inject HttpClient _Client
 
@@ -36,7 +38,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _students = await _Client.GetFromJsonAsync<IEnumerable<Student>>("GetStudents");
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+        _students = await _Client.GetFromJsonAsync<IEnumerable<Student>>("Student", options);
     }
 
     void AddItem()

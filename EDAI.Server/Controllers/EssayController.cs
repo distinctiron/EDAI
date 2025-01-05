@@ -16,6 +16,7 @@ public class EssayController(EdaiContext context) : ControllerBase
         return context.Essays
             .Include(e => e.Assignment)
             .Include(e => e.Student)
+            .Include(e => e.IndexedEssay)
             .Include(e => e.Scores);
     }
 
@@ -26,6 +27,7 @@ public class EssayController(EdaiContext context) : ControllerBase
             .Include(e => e.Assignment)
             .Include(e => e.Student)
             .Include(e => e.Scores)
+            .Include(e => e.IndexedEssay)
             .SingleOrDefault(e => e.EssayId == id);
         return essay;
     }

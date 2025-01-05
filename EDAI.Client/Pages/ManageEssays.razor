@@ -1,4 +1,6 @@
 @page "/manage-essays"
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @using EDAI.Shared.Models
 @inject HttpClient _Client
 
@@ -29,7 +31,7 @@
 
 @code
 {
-    private IEnumerable<Essay> Essays;
+    private IEnumerable<Essay>? Essays;
 
     private string _searchString;
 
@@ -48,7 +50,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Essays = await _Client.GetFromJsonAsync<IEnumerable<Essay>>("GetEssays");
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+        Essays = await _Client.GetFromJsonAsync<IEnumerable<Essay>>("Essay", options);
     }
 
 
