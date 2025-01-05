@@ -14,4 +14,10 @@ public class IndexedContent
     public int? ToCharInContent { get; set; }
 
     public string Content { get; set; }
+    
+    public int EssayId { get; set; }
+
+    public Essay? Essay { get; set; } = null!;
+    
+    public ICollection<FeedbackComment>? FeedbackComments { get; set; } = new List<FeedbackComment>();
 }

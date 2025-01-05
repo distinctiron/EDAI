@@ -12,7 +12,9 @@ public class Assignment
 
     public bool Open { get; set; } = true;
     
-    public byte[]? ReferenceTextFile { get; set; }
+    public int? ReferenceDocumentId { get; set; }
+    
+    public EdaiDocument? ReferenceDocument { get; set; }
 
     public ICollection<Essay>? Essays { get; } = new List<Essay>();
 }

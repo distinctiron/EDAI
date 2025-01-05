@@ -47,4 +47,41 @@ public class ScoreController(EdaiContext context) : ControllerBase
         context.SaveChanges();
         return Results.Ok(score);
     }
+    
+    [HttpPost("{id:int}/uploadScoredDocumentFile", Name = "UploadScoredDocumentFile")]
+    public IResult UploadFile([FromRoute]int id, IFormFile file)
+    {
+        var score = context.Scores.Find(id);
+        if (score == null) return Results.NotFound();
+        
+        MemoryStream memoryStream = new MemoryStream();
+        file.CopyTo(memoryStream);
+
+        EdaiDocument edaiDocument = new EdaiDocument
+        {
+            DocumentName = file.FileName, DocumentFileExtension = file.FileName.Split(".").Last(),
+            UploadDate = DateTime.Now
+        };
+        edaiDocument.DocumentFile = memoryStream.ToArray();
+
+        context.Documents.Add(edaiDocument);
+        
+        score.EvaluatedEssayDocument = edaiDocument;
+        context.Scores.Update(score);
+        
+        context.SaveChanges();
+
+        return Results.Ok(score);
+    }
+
+    [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
+    public IResult DownloadFile(int id)
+    {
+        var score = context.Scores.Find(id);
+        if (score == null) return Results.NotFound();
+        var document = context.Documents.Find(score.EvaluatedEssayDocumentId);
+        if (document == null) return Results.NotFound();
+        var bytes = document.DocumentFile!;
+        return Results.File(bytes, "application/octet-stream", document.DocumentName);
+    }
 }
