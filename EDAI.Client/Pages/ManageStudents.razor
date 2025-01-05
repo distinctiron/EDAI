@@ -1,5 +1,6 @@
 @page "/manage-students"
 @using EDAI.Shared.Models
+@using System.Collections.ObjectModel
 @inject HttpClient _Client
 
 <PageTitle>Manage Students</PageTitle>
@@ -7,8 +8,8 @@
 <MudText Typo="Typo.h3" GutterBottom="true">Manage Students</MudText>
 
 <MudGrid>
-    <MudItem>
-        <MudDataGrid T="Student" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" >
+    <MudItem xs="12">
+        <MudDataGrid T="Student" Items="@_students" Dense="false" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" >
             <ToolBarContent>
                 <MudText Typo="Typo.h6">Your Students</MudText>
                 <MudSpacer/>
@@ -30,18 +31,18 @@
 
 @code
 {
-    private IEnumerable<Student> _students;
+    private ObservableCollection<Student> _students;
 
     private string _searchString;
 
     protected override async Task OnInitializedAsync()
     {
-        _students = await _Client.GetFromJsonAsync<IEnumerable<Student>>("GetStudents");
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student");
     }
 
     void AddItem()
     {
-        _students.Append(new Student
+        _students.Add(new Student
         {
             Class = "Student Class",
             FirstName = "First Name",

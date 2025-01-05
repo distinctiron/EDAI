@@ -48,7 +48,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Essays = await _Client.GetFromJsonAsync<IEnumerable<Essay>>("GetEssays");
+        Essays = await _Client.GetFromJsonAsync<IEnumerable<Essay>>("Essays");
     }
 
 
