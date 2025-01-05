@@ -9,7 +9,7 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudDataGrid T="Student" Items="@_students" Dense="false" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" >
+        <MudDataGrid T="Student" Items="@_students" ReadOnly="false" Dense="false" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" EditTrigger="DataGridEditTrigger.OnRowClick" QuickFilter="_search">
             <ToolBarContent>
                 <MudText Typo="Typo.h6">Your Students</MudText>
                 <MudSpacer/>
@@ -22,10 +22,10 @@
                 <PropertyColumn Property="x => x.LastName"></PropertyColumn>
             </Columns>
             <PagerContent>
-                <MudDataGridPager T = "Essay"/>
+                <MudDataGridPager T = "Student"/>
             </PagerContent>
         </MudDataGrid>
-        <MudButton OnClick="@AddItem" Color="@Color.Success" Class="add-item-btn">Add Item</MudButton>
+        <MudButton OnClick="@AddItem" Color="@Color.Success" Class="add-item-btn">Add Student</MudButton>
     </MudItem>
 </MudGrid>
 
@@ -39,6 +39,19 @@
     {
         _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student");
     }
+    
+    private Func<Student, bool> _search => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (x.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.LastName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.Class.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    };
 
     void AddItem()
     {
