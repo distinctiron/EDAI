@@ -38,6 +38,15 @@ public class EssayController(EdaiContext context) : ControllerBase
         return Results.Ok(essay.EssayId);
     }
 
+    [HttpPost("bulk", Name = "BulkAddEssay")]
+    public IResult BulkAddEssay(IEnumerable<Essay> essays)
+    {
+        var enumerable = essays.ToList();
+        context.Essays.AddRange(enumerable);
+        context.SaveChanges();
+        return Results.Ok(enumerable.Select(essay => essay.EssayId));
+    }
+
     [HttpDelete("{id:int}", Name = "DeleteEssay")]
     public IResult DeleteEssay(int id)
     {
