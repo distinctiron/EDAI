@@ -1,0 +1,50 @@
+@page "/essayoverview"
+@using EDAI.Shared.Models
+
+<PageTitle>Essay Overview</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Essay Overview</MudText>
+
+<MudGrid>
+    <MudItem>
+        <MudDataGrid T="Essay" ReadOnly="true" SortMode="SortMode.Multiple" Filterable="true" Hideable="true" QuickFilter="@_quickFilter">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Your Essays</MudText>
+                <MudSpacer/>
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+                </MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Assignment.Name"></PropertyColumn>
+                <PropertyColumn Property="x => x.Student.FirstName"></PropertyColumn>
+                <PropertyColumn Property="x => x.Student.LastName"></PropertyColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T = "Essay"/>
+            </PagerContent>
+        </MudDataGrid>
+    </MudItem>
+</MudGrid>
+
+@code
+{
+    private IEnumerable<Essay> Essays = new List<Essay>();
+
+    private string _searchString;
+
+    private Func<Essay, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (x.Student.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.Student.LastName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.Assignment.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    };
+
+}
+
+
