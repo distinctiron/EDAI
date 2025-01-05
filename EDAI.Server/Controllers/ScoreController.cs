@@ -15,7 +15,7 @@ public class ScoreController(EdaiContext context) : ControllerBase
         return context.Scores;
     }
 
-    [HttpGet("id:int", Name = "GetScoresById")]
+    [HttpGet("{id:int}", Name = "GetScoresById")]
     public IResult GetById(int id)
     {
         var score = context.Scores.Find(id);
@@ -30,7 +30,7 @@ public class ScoreController(EdaiContext context) : ControllerBase
         return Results.Ok(score.ScoreId);
     }
 
-    [HttpDelete("id:int", Name = "DeleteScore")]
+    [HttpDelete("{id:int}", Name = "DeleteScore")]
     public IResult DeleteScore(int id)
     {
         var score = context.Scores.Find(id);
