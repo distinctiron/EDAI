@@ -1,4 +1,4 @@
-﻿namespace EDAI.Shared.Models;
+﻿namespace EDAI.Shared.Models.Entities;
 
 public class Essay
 {

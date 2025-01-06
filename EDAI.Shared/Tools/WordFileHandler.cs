@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO.OpenAI;
+using EDAI.Shared.Models.Entities;
 using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using Comment = DocumentFormat.OpenXml.Wordprocessing.Comment;

@@ -3,6 +3,7 @@
 @using System.Text.Json.Serialization
 @using EDAI.Shared.Models
 @using System.Collections.ObjectModel
+@using EDAI.Shared.Models.Entities
 @inject HttpClient _Client
 
 <PageTitle>Manage Students</PageTitle>
@@ -39,13 +40,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student");
         var options = new JsonSerializerOptions()
         {
             ReferenceHandler = ReferenceHandler.Preserve,
             PropertyNameCaseInsensitive = true
         };
         _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student", options);
+        
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Assignment", options);
     }
     
     private Func<Student, bool> _search => x =>

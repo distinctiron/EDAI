@@ -1,40 +1,84 @@
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using EDAI.Shared.Models.DTO
+@inject HttpClient _Client
 <h3>Create Assignment</h3>
 
 <MudGrid>
+    @if (_createdAssignment)
+    {
+        <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+    }
     <MudItem xs="12">
-        <MudForm @ref="form" @bind-IsValid="@_validForm" @bind-Errors="@errors">
-            <MudTextField T="string" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
-            <MudTextField T="string" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment" 
-                          Variant="Variant.Outlined" Lines="6" />
-            <MudSelect T="string" Label="Class" MultiSelection="true">
-                @foreach (var studentClass in studentClasses)
-                {
-                    <MudSelectItem T = "string">@studentClass</MudSelectItem>
-                }
-            </MudSelect>
-            <div class="d-flex align-center justify-space-between">
-                <MudFileUpload T="IBrowserFile" Accept=".pdf" Required="false">
-                    <ActivatorContent>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   StartIcon="@Icons.Material.Filled.AttachFile">
-                            Attach Reference File
-                        </MudButton>
-                    </ActivatorContent>
-                </MudFileUpload>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_validForm)" Class="ml-auto">Create</MudButton>
-            </div>
-        </MudForm>
+        <EditForm Model="@_assignmentDto" OnValidSubmit="CreateAssignmentAsync">
+            <DataAnnotationsValidator/>
+            <MudCard>
+                <MudTextField T="string" bind-Value="@_assignmentDto.Name" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
+                <MudTextField T="string" bind-Value="@_assignmentDto.Description" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment"
+                              Variant="Variant.Outlined" Lines="6"/>
+                <MudSelect T="string" Label="Class" MultiSelection="true">
+                    @foreach (var studentClass in studentClasses)
+                    {
+                        <MudSelectItem T="string">@studentClass</MudSelectItem>
+                    }
+                </MudSelect>
+                <div class="d-flex align-center justify-space-between">
+                    <MudFileUpload T="IBrowserFile" bind-Files="@_browserFile" Accept=".pdf" Required="false">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.AttachFile">
+                                Attach Reference File
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </div>    
+            </MudCard>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
+            </MudCardActions>
+            
+        </EditForm>
     </MudItem>
 </MudGrid>
 
 @code {
 
+    private bool _createdAssignment = false;
     private bool _validForm;
-    private string[] errors = { };
-    private MudForm form;
+    private AssignmentDTO _assignmentDto = new AssignmentDTO();
+    private IBrowserFile _browserFile;
+    private const long maxFileSize = 10 * 1024 * 1024;
+    
     private string[] studentClasses= {
         "1x","1y","2a"
     };
+
+    private async void CreateAssignmentAsync(EditContext context)
+    {
+        if (_browserFile is not null)
+        {
+            _assignmentDto.DocumentName = _browserFile.Name;
+            _assignmentDto.DocumentFileExtension = _browserFile.ContentType;
+
+            using var stream = _browserFile.OpenReadStream(maxFileSize);
+            using var memoryStream = new MemoryStream();
+
+            await stream.CopyToAsync(memoryStream);
+
+            _assignmentDto.DocumentFile = memoryStream.ToArray();
+            _assignmentDto.UploadDate = DateTime.Now;
+        }
+
+        _assignmentDto.Open = true;
+
+        _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+
+        _createdAssignment = true;
+
+        _assignmentDto = new AssignmentDTO();
+        
+        StateHasChanged();
+    }
 
 }

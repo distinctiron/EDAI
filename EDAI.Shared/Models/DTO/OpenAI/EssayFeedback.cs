@@ -1,4 +1,6 @@
-namespace EDAI.Shared.Models;
+using EDAI.Shared.Models.Entities;
+
+namespace EDAI.Shared.Models.DTO.OpenAI;
 
 public class EssayFeedback
 {

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using EDAI.Server.Data;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.Entities;
 using Json.More;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
@@ -34,6 +35,7 @@ builder.Services.AddRazorPages();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 var app = builder.Build();
 

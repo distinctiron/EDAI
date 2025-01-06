@@ -2,6 +2,7 @@
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;

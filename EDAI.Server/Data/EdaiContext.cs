@@ -1,4 +1,5 @@
 ﻿using EDAI.Shared.Models;
+using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Document = iText.StyledXmlParser.Jsoup.Nodes.Document;
 

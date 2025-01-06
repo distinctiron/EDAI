@@ -1,6 +1,9 @@
-﻿using EDAI.Server.Data;
+﻿using AutoMapper;
+using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO;
+using EDAI.Shared.Models.Entities;
 
 namespace EDAI.Server.Controllers;
 
@@ -8,10 +11,17 @@ namespace EDAI.Server.Controllers;
 [Route("[controller]")]
 public class AssignmentController(EdaiContext context) : ControllerBase
 {
-    [HttpGet(Name = "GetAssignments")]
-    public IEnumerable<Assignment> GetAssignments()
+    private readonly IMapper _mapper;
+
+    public AssignmentController(IMapper mapper) : this(new EdaiContext())
     {
-        return context.Assignments;
+        _mapper = mapper;
+    }
+    
+    [HttpGet(Name = "GetAssignments")]
+    public IEnumerable<AssignmentDTO> GetAssignments()
+    {
+        return _mapper.Map<IEnumerable<AssignmentDTO>>(context.Assignments);
     }
 
     [HttpGet("{id:int}", Name = "GetAssignmentById")]

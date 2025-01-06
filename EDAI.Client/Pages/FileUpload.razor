@@ -1,6 +1,11 @@
 @page "/fileupload"
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @using EDAI.Client.Components
 @using EDAI.Shared.Models
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.Entities
+@inject HttpClient _Client
 @inject IDialogService DialogService
 
 
@@ -94,7 +99,7 @@
 
     private string _assignment;
 
-    private string[] _assignments = { "James Rebanks", "Gatsby", "Letter to the future" };
+    private IEnumerable<AssignmentDTO> _assignments;
 
     private string _assignmentClass;
     
@@ -106,6 +111,19 @@
         {
             this.files.Add(file);
         }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
+
+        await Task.Delay(100);
     }
 
     private Task OpenDialogAsync()
