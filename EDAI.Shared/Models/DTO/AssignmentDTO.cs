@@ -15,12 +15,4 @@ public class AssignmentDTO
     public bool Open { get; set; } = true;
     
     public int? ReferenceDocumentId { get; set; }
-    
-    public string DocumentName { get; set; }
-    
-    public string DocumentFileExtension { get; set; }
-    
-    public DateTime UploadDate { get; set; }
-    
-    public byte[] DocumentFile { get; set; }
 }

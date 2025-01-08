@@ -1,43 +1,54 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using DocumentFormat.OpenXml.Wordprocessing
 @using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.DTO.OpenAI
+@using Color = MudBlazor.Color
 @inject HttpClient _Client
-<h3>Create Assignment</h3>
+@using Microsoft.AspNetCore.Http
+<h3 class="pl-5 pt-5">Create Assignment</h3>
 
-<MudGrid>
+<MudGrid Class="p-5">
     @if (_createdAssignment)
     {
-        <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+        <MudItem xs="12">
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+        </MudItem>
     }
     <MudItem xs="12">
-        <EditForm Model="@_assignmentDto" OnValidSubmit="CreateAssignmentAsync">
+        <EditForm Model="@_assignmentDto" OnSubmit="CreateAssignmentAsync">
             <DataAnnotationsValidator/>
-            <MudCard>
-                <MudTextField T="string" bind-Value="@_assignmentDto.Name" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
-                <MudTextField T="string" bind-Value="@_assignmentDto.Description" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment"
-                              Variant="Variant.Outlined" Lines="6"/>
-                <MudSelect T="string" Label="Class" MultiSelection="true">
-                    @foreach (var studentClass in studentClasses)
-                    {
-                        <MudSelectItem T="string">@studentClass</MudSelectItem>
-                    }
-                </MudSelect>
+            <MudCard >
+                <MudCardContent>
+                    <MudTextField T="string" @bind-Value="_assignmentDto.Name" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
+                    <MudTextField T="string" @bind-Value="_assignmentDto.Description" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment"
+                                  Variant="Variant.Outlined" Lines="6"/>
+                    <MudSelect T="string" @bind-SelectedValues="_assignmentClasses" Label="Class" MultiSelection="true">
+                        @foreach (var studentClass in _studentClasses)
+                        {
+                            <MudSelectItem T="string" Value="@studentClass">@studentClass</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudCardContent>
                 <div class="d-flex align-center justify-space-between">
-                    <MudFileUpload T="IBrowserFile" bind-Files="@_browserFile" Accept=".pdf" Required="false">
+                    <MudFileUpload Class="pl-5 pb-5" T="IBrowserFile" FilesChanged="UploadFiles" Accept=".pdf" Required="false">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Secondary"
                                        StartIcon="@Icons.Material.Filled.AttachFile">
                                 Attach Reference File
                             </MudButton>
+                            @if (_referenceFile is not null)
+                            {
+                                <MudChip T = "string"> @_referenceFile.Name</MudChip>
+                            }
                         </ActivatorContent>
                     </MudFileUpload>
-                </div>    
+                    <MudCardActions Class="pr-5 pb-5">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
+                    </MudCardActions>
+                </div>
             </MudCard>
-            <MudCardActions>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
-            </MudCardActions>
-            
         </EditForm>
     </MudItem>
 </MudGrid>
@@ -45,40 +56,52 @@
 @code {
 
     private bool _createdAssignment = false;
+    private string _selectedClass = "No class selected";
     private bool _validForm;
     private AssignmentDTO _assignmentDto = new AssignmentDTO();
-    private IBrowserFile _browserFile;
-    private const long maxFileSize = 10 * 1024 * 1024;
+    private IBrowserFile _referenceFile;
     
-    private string[] studentClasses= {
-        "1x","1y","2a"
-    };
+    private const long maxFileSize = 10 * 1024 * 1024;
+
+    private string[] _studentClasses = {"1y","1v","2x" };
+
+    private IEnumerable<string> _assignmentClasses = new HashSet<string>();
 
     private async void CreateAssignmentAsync(EditContext context)
     {
-        if (_browserFile is not null)
-        {
-            _assignmentDto.DocumentName = _browserFile.Name;
-            _assignmentDto.DocumentFileExtension = _browserFile.ContentType;
-
-            using var stream = _browserFile.OpenReadStream(maxFileSize);
-            using var memoryStream = new MemoryStream();
-
-            await stream.CopyToAsync(memoryStream);
-
-            _assignmentDto.DocumentFile = memoryStream.ToArray();
-            _assignmentDto.UploadDate = DateTime.Now;
-        }
 
         _assignmentDto.Open = true;
 
-        _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+        var assignmentId = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+
+        if (_referenceFile is not null)
+        {
+            //using var stream = new MemoryStream();
+            var fileStream = _referenceFile.OpenReadStream();
+            var content = ConvertFileToStringAsync(fileStream);
+            
+            
+            //fileStream.CopyToAsync(stream);
+            await _Client.PostAsJsonAsync($"Assignment/5/uploadDocumentFile", fileStream);
+        }
 
         _createdAssignment = true;
 
         _assignmentDto = new AssignmentDTO();
         
+        
         StateHasChanged();
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        _referenceFile = file;
+    }
+
+    private async Task<string> ConvertFileToStringAsync(Stream fileStream)
+    {
+        var converter = new StreamReader(fileStream);
+        return await converter.ReadToEndAsync();
     }
 
 }

@@ -18,7 +18,7 @@
         <MudSelect @bind-Value="_assignment" Placeholder="Select Assignment">
             @foreach (var assignment in _assignments)
             {
-                <MudSelectItem Value="assignment">@assignment</MudSelectItem>
+                <MudSelectItem Value="assignment.Name">@assignment.Name</MudSelectItem>
             }
         </MudSelect>        
     </MudItem>
@@ -99,7 +99,7 @@
 
     private string _assignment;
 
-    private IEnumerable<AssignmentDTO> _assignments;
+    private IEnumerable<AssignmentDTO> _assignments = new List<AssignmentDTO>();
 
     private string _assignmentClass;
     
@@ -122,8 +122,6 @@
         };
 
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
-
-        await Task.Delay(100);
     }
 
     private Task OpenDialogAsync()
@@ -132,6 +130,10 @@
         {
             CloseOnEscapeKey = true,
             CloseButton = true,
+            MaxWidth = MaxWidth.ExtraLarge,
+            FullWidth = true,
+            NoHeader    = true,
+            BackdropClick = false
         };
 
         return DialogService.ShowAsync<AssignmentCreationDialog>("Create Assignment", options);

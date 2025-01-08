@@ -9,15 +9,8 @@ namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class AssignmentController(EdaiContext context) : ControllerBase
-{
-    private readonly IMapper _mapper;
-
-    public AssignmentController(IMapper mapper) : this(new EdaiContext())
-    {
-        _mapper = mapper;
-    }
-    
+public class AssignmentController(EdaiContext context, IMapper _mapper) : ControllerBase
+{   
     [HttpGet(Name = "GetAssignments")]
     public IEnumerable<AssignmentDTO> GetAssignments()
     {
@@ -32,9 +25,9 @@ public class AssignmentController(EdaiContext context) : ControllerBase
     }
 
     [HttpPost(Name = "AddAssignment")]
-    public IResult AddAssignment(Assignment assignment)
+    public IResult AddAssignment(AssignmentDTO assignment)
     {
-        context.Assignments.Add(assignment);
+        context.Assignments.Add(_mapper.Map<Assignment>(assignment));
         context.SaveChanges();
         return Results.Ok(assignment.AssignmentId);
     }
