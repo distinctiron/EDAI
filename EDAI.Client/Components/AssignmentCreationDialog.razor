@@ -1,3 +1,4 @@
+@using System.Net.Http.Headers
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using DocumentFormat.OpenXml.Wordprocessing
@@ -72,23 +73,27 @@
 
         _assignmentDto.Open = true;
 
-        var assignmentId = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+        var assignmentRepsonse = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+
+        var assignmentId = await assignmentRepsonse.Content. ReadFromJsonAsync<int>();
 
         if (_referenceFile is not null)
         {
-            //using var stream = new MemoryStream();
-            var fileStream = _referenceFile.OpenReadStream();
-            var content = ConvertFileToStringAsync(fileStream);
+            using var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(_referenceFile.OpenReadStream(maxFileSize));
+
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(_referenceFile.ContentType);
             
+            content.Add(content:streamContent, name:"\"file\"", fileName:_referenceFile.Name); 
             
-            //fileStream.CopyToAsync(stream);
-            await _Client.PostAsJsonAsync($"Assignment/5/uploadDocumentFile", fileStream);
+            var fileResponse = await _Client.PostAsync($"Assignment/{assignmentId}/uploadDocumentFile", content);
         }
 
         _createdAssignment = true;
 
         _assignmentDto = new AssignmentDTO();
-        
+
+        _referenceFile = null;
         
         StateHasChanged();
     }
@@ -97,11 +102,4 @@
     {
         _referenceFile = file;
     }
-
-    private async Task<string> ConvertFileToStringAsync(Stream fileStream)
-    {
-        var converter = new StreamReader(fileStream);
-        return await converter.ReadToEndAsync();
-    }
-
 }

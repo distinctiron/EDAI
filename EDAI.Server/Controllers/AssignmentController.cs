@@ -27,9 +27,11 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
     [HttpPost(Name = "AddAssignment")]
     public IResult AddAssignment(AssignmentDTO assignment)
     {
-        context.Assignments.Add(_mapper.Map<Assignment>(assignment));
+        var entity = _mapper.Map<Assignment>(assignment);
+        
+        context.Assignments.Add(entity);
         context.SaveChanges();
-        return Results.Ok(assignment.AssignmentId);
+        return Results.Ok(entity.AssignmentId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteAssignment")]
