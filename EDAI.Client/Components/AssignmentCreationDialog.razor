@@ -56,6 +56,9 @@
 
 @code {
 
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    
     private bool _createdAssignment = false;
     private string _selectedClass = "No class selected";
     private bool _validForm;
@@ -64,14 +67,28 @@
     
     private const long maxFileSize = 10 * 1024 * 1024;
 
-    private string[] _studentClasses = {"1y","1v","2x" };
+    private IEnumerable<string> _studentClasses = new List<string>();
 
     private IEnumerable<string> _assignmentClasses = new HashSet<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        var students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+
+        _studentClasses = students.Select(x => x.Class).Distinct();
+    }
 
     private async void CreateAssignmentAsync(EditContext context)
     {
 
         _assignmentDto.Open = true;
+        _assignmentDto.StudentClasses = _assignmentClasses;
 
         var assignmentRepsonse = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
 
@@ -87,6 +104,12 @@
             content.Add(content:streamContent, name:"\"file\"", fileName:_referenceFile.Name); 
             
             var fileResponse = await _Client.PostAsync($"Assignment/{assignmentId}/uploadDocumentFile", content);
+
+            if (fileResponse.IsSuccessStatusCode)
+            {
+                Task.Delay(500);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
         }
 
         _createdAssignment = true;

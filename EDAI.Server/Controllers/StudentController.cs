@@ -1,7 +1,9 @@
-﻿using EDAI.Server.Data;
+﻿using AutoMapper;
+using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,12 +11,14 @@ namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class StudentController(EdaiContext context) : ControllerBase
+public class StudentController(EdaiContext context, IMapper mapper) : ControllerBase
 {
     [HttpGet(Name = "GetStudents")]
-    public IEnumerable<Student> GetStudents()
+    public IEnumerable<StudentDTO> GetStudents()
     {
-        return context.Students.Include( s => s.Essays);
+        var entities = context.Students.Include( s => s.Essays);
+
+        return mapper.Map<IEnumerable<StudentDTO>>(entities);
     }
 
     [HttpGet("{id:int}", Name = "GetStudentById")]

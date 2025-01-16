@@ -30,7 +30,23 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         var entity = _mapper.Map<Assignment>(assignment);
         
         context.Assignments.Add(entity);
+        
         context.SaveChanges();
+
+        var students = context.Students.Where(x => assignment.StudentClasses.Contains(x.Class));
+        
+        foreach (var student in students)
+        {
+            context.Essays.Add(new Essay
+            {
+                AssignmentId = entity.AssignmentId,
+                Evaluated = false,
+                Student = student
+            });
+        }
+
+        context.SaveChanges();
+        
         return Results.Ok(entity.AssignmentId);
     }
 

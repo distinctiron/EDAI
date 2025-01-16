@@ -25,6 +25,13 @@
     <MudItem xs="2">
         <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create Assignment</MudButton>
     </MudItem>
+    @if (_assignmentCreated)
+    {
+    <MudItem xs="2" Class="justify-end">
+        <MudChip  T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+    </MudItem>
+    }
+    
     @if (!String.IsNullOrEmpty(_assignment))
     {
         <MudItem xs="2">
@@ -35,20 +42,19 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="2">
-            <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Add">Create Class</MudButton>
-        </MudItem>
     }
-    <MudItem xs="2">
+
+    <MudItem xs=@(!_assignmentCreated && String.IsNullOrEmpty(_assignment) ? 8:4) Class="justify-end" >
         <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".docx" FilesChanged="UploadFiles">
             <ActivatorContent>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" 
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
                            Disabled="@(String.IsNullOrEmpty(_assignment) || String.IsNullOrEmpty(_assignmentClass))">
                     Upload Files
                 </MudButton>
             </ActivatorContent>
-        </MudFileUpload>        
+        </MudFileUpload>
     </MudItem>
+    
     @if (files.Any())
     {
         <MudItem xs = "12">
@@ -99,14 +105,20 @@
 
     private string _assignment;
 
+    private bool _assignmentCreated = false;
+
     private IEnumerable<AssignmentDTO> _assignments = new List<AssignmentDTO>();
 
     private string _assignmentClass;
-    
-    private string[] _assignmentClasses = { "1x", "1y", "1v" };
+
+    private IEnumerable<string> _assignmentClasses;
+
+    private IEnumerable<StudentDTO> _students;
 
     private void UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
+        
+        
         foreach (var file in files)
         {
             this.files.Add(file);
@@ -122,9 +134,13 @@
         };
 
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
+
+        _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+
+        _assignmentClasses = _students.Select(x => x.Class).Distinct();
     }
 
-    private Task OpenDialogAsync()
+    private async Task OpenDialogAsync()
     {
         var options = new DialogOptions
         {
@@ -136,7 +152,22 @@
             BackdropClick = false
         };
 
-        return DialogService.ShowAsync<AssignmentCreationDialog>("Create Assignment", options);
+        var dialog = await DialogService.ShowAsync<AssignmentCreationDialog>("Create Assignment", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var httpOptions = new JsonSerializerOptions()
+            {
+                ReferenceHandler = ReferenceHandler.Preserve,
+                PropertyNameCaseInsensitive = true
+            };
+
+            _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", httpOptions);
+
+            _assignmentCreated = true;
+        }
+
     }
 
 }
