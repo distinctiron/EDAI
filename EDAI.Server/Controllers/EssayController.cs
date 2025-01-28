@@ -1,7 +1,9 @@
 ﻿using System.Text.Json;
+using AutoMapper;
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +11,7 @@ namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class EssayController(EdaiContext context) : ControllerBase
+public class EssayController(EdaiContext context, IMapper _mapper) : ControllerBase
 {
     [HttpGet(Name = "GetEssays")]
     public IEnumerable<Essay> GetEssays()
@@ -42,10 +44,18 @@ public class EssayController(EdaiContext context) : ControllerBase
     }
 
     [HttpPost("bulk", Name = "BulkAddEssay")]
-    public IResult BulkAddEssay(IEnumerable<Essay> essays)
+    public IResult BulkAddEssay(IEnumerable<EssayFileDTO> essays)
     {
-        var enumerable = essays.ToList();
+        
+        var entities = _mapper.Map<IEnumerable<Essay>>(essays);
+        foreach (var entity in entities)
+        {
+            entity.StudentId = entity.Student.StudentId;
+            entity.Student = null;
+        }
+        var enumerable = entities.ToList();
         context.Essays.AddRange(enumerable);
+        
         context.SaveChanges();
         return Results.Ok(enumerable.Select(essay => essay.EssayId));
     }

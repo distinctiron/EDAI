@@ -37,8 +37,4 @@
       <ProjectReference Include="..\EDAI.Shared\EDAI.Shared.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Mapper\" />
-    </ItemGroup>
-
 </Project>

@@ -1,13 +1,15 @@
 @page "/fileupload"
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using DocumentFormat.OpenXml.InkML
 @using EDAI.Client.Components
+@using EDAI.Shared.Exceptions
 @using EDAI.Shared.Models
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Entities
 @inject HttpClient _Client
 @inject IDialogService DialogService
-
+@using MudBlazor.Interfaces
 
 <PageTitle>File Upload</PageTitle>
 
@@ -15,10 +17,10 @@
 
 <MudGrid>
     <MudItem xs="2">
-        <MudSelect @bind-Value="_assignment" Placeholder="Select Assignment">
+        <MudSelect T="AssignmentDTO" @bind-Value="_assignment" Placeholder="Select Assignment" Label="Assignment">
             @foreach (var assignment in _assignments)
             {
-                <MudSelectItem Value="assignment.Name">@assignment.Name</MudSelectItem>
+                <MudSelectItem Value="assignment">@assignment.Name</MudSelectItem>
             }
         </MudSelect>        
     </MudItem>
@@ -31,79 +33,77 @@
         <MudChip  T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
     </MudItem>
     }
-    
-    @if (!String.IsNullOrEmpty(_assignment))
-    {
-        <MudItem xs="2">
-            <MudSelect @bind-Value="_assignmentClass" Placeholder="Select Class">
-                @foreach (var assignmentClass in _assignmentClasses)
-                {
-                    <MudSelectItem Value="assignmentClass">@assignmentClass</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-    }
-
-    <MudItem xs=@(!_assignmentCreated && String.IsNullOrEmpty(_assignment) ? 8:4) Class="justify-end" >
+    <MudItem xs=@(!_assignmentCreated && _assignment == null ? 8:4) Class="justify-end" >
         <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".docx" FilesChanged="UploadFiles">
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
-                           Disabled="@(String.IsNullOrEmpty(_assignment) || String.IsNullOrEmpty(_assignmentClass))">
+                           Disabled="@(_assignment == null)">
                     Upload Files
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
     </MudItem>
     
-    @if (files.Any())
+    @if (_essays.Any())
     {
         <MudItem xs = "12">
-            <div class="d-flex flex-wrap mt-4">
-                <MudSwitch @bind-Value="_editable" Color="Color.Primary">Edit</MudSwitch>
-                <MudSwitch @bind-Value="_select_for_review" Color="Color.Primary">Select Files</MudSwitch>
-            </div>
-
-            <MudDataGrid MultiSelection="true" T="IBrowserFile" Items="@files" ReadOnly="@(!_editable)" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" @bind-SelectedItems="selectedFiles">
+            <MudDataGrid MultiSelection="true" T="EssayFileDTO" Items="_essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false">
                 <Columns>
-                    <SelectColumn T="IBrowserFile" Hidden="@(!_select_for_review)"/>
-                    <PropertyColumn Property="x => x.Name" Title="File Name" Editable="false"/>
-                    <PropertyColumn Property="x => x.Size" Title="Size" Editable="false"/>
-                    <PropertyColumn Property="x => x.ContentType" Title="File Type" Editable="false"/>
-                    <PropertyColumn Property="x => x.LastModified" Title="Last Modified" Editable="false"/>
+                    <PropertyColumn Property="x => x.Document.DocumentName" Title="File Name" Editable="false"/>
+                    <PropertyColumn Property="x => x.Student.FirstName" Title="First Name" Editable="true" CellStyleFunc="@_errorStyle">
+                        <EditTemplate>
+                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FirstName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
+                        </EditTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.Student.LastName" Title="Last Name" Editable="true" CellStyleFunc="@_errorStyle">
+                        <EditTemplate>
+                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Student.LastName" SearchFunc="SearchLastName" Required="true" RequiredError="Please Specify Last Name" />
+                        </EditTemplate>
+                    </PropertyColumn>
                 </Columns>
             </MudDataGrid>
         </MudItem>
         
+        
         <MudItem xs = "2">
-            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Feedback" Disabled="@(!selectedFiles.Any())">
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
                 Review Files
             </MudButton>
         </MudItem>
-        <MudItem xs = "2">
-            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Download" Disabled="@(!selectedFiles.Any())">
-                Download Files
-            </MudButton>
-        </MudItem>
-        <MudItem>
-            
-        </MudItem>
+        
+        @if (!_validStudents)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip  T="string" Color="Color.Error" Variant="Variant.Text">Error in assigning students</MudChip>
+            </MudItem>
+        }
+        @if (_filesUploadedSuccesfully)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip  T="string" Color="Color.Success" Variant="Variant.Text">Files Uploaded</MudChip>
+            </MudItem>
+        }
+        @if (_errorInFilesUploaded)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip  T="string" Color="Color.Error" Variant="Variant.Text">Error in File Upload</MudChip>
+            </MudItem>
+        }
     }
 </MudGrid>
 
 
 
 @code {
-    private IList<IBrowserFile> files = new List<IBrowserFile>();
+    private bool _validStudents = true;
 
-    private IList<Student> students = new List<Student>();
+    private bool _filesUploadedSuccesfully = false;
+    
+    private bool _errorInFilesUploaded = false;
 
-    private HashSet<IBrowserFile> selectedFiles = new HashSet<IBrowserFile>();
+    private const int _maxFileSize = 1024 * 1024 * 10; 
 
-    private bool _editable;
-
-    private bool _select_for_review;
-
-    private string _assignment;
+    private AssignmentDTO? _assignment;
 
     private bool _assignmentCreated = false;
 
@@ -111,19 +111,94 @@
 
     private string _assignmentClass;
 
-    private IEnumerable<string> _assignmentClasses;
-
     private IEnumerable<StudentDTO> _students;
 
-    private void UploadFiles(IReadOnlyList<IBrowserFile> files)
+    private IList<EssayFileDTO> _essays = new List<EssayFileDTO>();
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
-        
+        using var memoryStream = new MemoryStream();
         
         foreach (var file in files)
         {
-            this.files.Add(file);
+            using var stream = file.OpenReadStream(_maxFileSize);
+            await stream.CopyToAsync(memoryStream);
+
+            _essays.Add(new EssayFileDTO
+            {
+                AssignmentId = _assignment.AssignmentId,
+                Document = new EdaiDocument
+                {
+                    DocumentFile = memoryStream.ToArray(),
+                    DocumentName = file.Name,
+                    DocumentFileExtension = Path.GetExtension(file.Name)
+                },
+                Student = new Student()
+            });
         }
     }
+
+    private async Task SendFilesForReview()
+    {
+        try
+        {
+            await AssignStudentIds();
+        }
+        catch (NoStudentException e)
+        {
+            _validStudents = false;
+            return;
+        }
+        
+        _validStudents = true;
+
+        var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essays);
+        
+        if (essayResponse.IsSuccessStatusCode)
+        {
+            _errorInFilesUploaded = false;
+            _filesUploadedSuccesfully = true;
+            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", essayResponse.Content.ReadFromJsonAsync<IEnumerable<int>>());
+        }
+        else
+        {
+            _filesUploadedSuccesfully = false;
+            _errorInFilesUploaded = true;
+        }
+
+    }
+
+    private async Task AssignStudentIds()
+    {
+        foreach (var esssay in _essays)
+        {
+            var studentMatches = _students.Where(s => s.FirstName == esssay.Student.FirstName && s.LastName == esssay.Student.LastName);
+            
+            if (studentMatches.Count() == 1)
+            {
+                var matchedStudent = studentMatches.Single();
+
+                esssay.Student.StudentId = matchedStudent.StudentId;
+                esssay.Student.Class = matchedStudent.Class;
+                esssay.Student.GraduationYear = matchedStudent.GraduationYear;
+            }
+            else
+            {
+                throw new NoStudentException();
+            }
+        }
+    }
+
+    private Func<EssayFileDTO, string> _errorStyle => x =>
+    {
+        var studentMatches = _students.Where(s => s.FirstName == x.Student.FirstName && s.LastName == x.Student.LastName);
+
+        if (studentMatches.Count() == 0)
+        {
+            return "background-color:#FFCCCC";
+        }
+        return "background-color:#0000FF";
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,8 +211,6 @@
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
 
         _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
-
-        _assignmentClasses = _students.Select(x => x.Class).Distinct();
     }
 
     private async Task OpenDialogAsync()
@@ -168,6 +241,22 @@
             _assignmentCreated = true;
         }
 
+    }
+
+    private async Task<IEnumerable<string>> SearchFirstName(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _students.Select(x => x.FirstName).Distinct();
+
+        return _students.Select(x => x.FirstName).Where(firstName => firstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
+    }
+    
+    private async Task<IEnumerable<string>> SearchLastName(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _students.Select(x => x.LastName).Distinct();
+
+        return _students.Select(x => x.LastName).Where(lastName => lastName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
     }
 
 }

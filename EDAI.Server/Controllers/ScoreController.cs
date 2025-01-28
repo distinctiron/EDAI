@@ -3,6 +3,7 @@ using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.Entities;
+using MudBlazor;
 
 namespace EDAI.Server.Controllers;
 
@@ -29,6 +30,16 @@ public class ScoreController(EdaiContext context) : ControllerBase
         context.Scores.Add(score);
         context.SaveChanges();
         return Results.Ok(score.ScoreId);
+    }
+
+    [HttpPost("generatescores", Name = "GenerateScores")]
+    public IResult GenerateScores(IEnumerable<int> documentIds)
+    {
+        var documents = context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId));
+        
+        
+        
+        return Results.Ok();
     }
 
     [HttpDelete("{id:int}", Name = "DeleteScore")]

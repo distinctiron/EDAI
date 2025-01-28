@@ -92,7 +92,7 @@
 
         var assignmentRepsonse = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
 
-        var assignmentId = await assignmentRepsonse.Content. ReadFromJsonAsync<int>();
+        var assignmentId = await assignmentRepsonse.Content.ReadFromJsonAsync<int>();
 
         if (_referenceFile is not null)
         {
