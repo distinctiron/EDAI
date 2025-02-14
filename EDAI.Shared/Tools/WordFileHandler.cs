@@ -11,7 +11,7 @@ using Comment = DocumentFormat.OpenXml.Wordprocessing.Comment;
 
 namespace EDAI.Shared.Tools;
 
-public class WordFileHandler
+public class WordFileHandler : IWordFileHandler
 {
     
     // This class needs a big refactor as methods are too long, contain too many parameters and have non-obvious side effects.
@@ -81,7 +81,7 @@ public class WordFileHandler
         
     }
     
-    public async Task AddComments(Stream stream, EssayFeedback feedback)
+    public async Task AddComments(Stream stream, IEnumerable<FeedbackComment> comments)
     {
         stream.Position = 0;
         
@@ -119,9 +119,7 @@ public class WordFileHandler
                 }
             }
 
-            id = InsertComments(wordDoc, wordprocessingCommentsPart, feedback.GrammarComments, id);
-            id = InsertComments(wordDoc, wordprocessingCommentsPart, feedback.ArgumentationComments, id);
-            id = InsertComments(wordDoc, wordprocessingCommentsPart, feedback.EloquenceComments, id);
+            id = InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
 
         }
         
@@ -163,7 +161,7 @@ public class WordFileHandler
         return currentHighestCommentId;
     }
     
-    public async Task AddFeedback(Stream stream, string feedback, System.Drawing.Color feedbackColor)
+    public async Task AddFeedback(Stream stream, string feedback)
     {
         stream.Position = 0;
         
@@ -188,7 +186,7 @@ public class WordFileHandler
                 root.Save(part);
             }
 
-            var style = GetNewStyle(feedbackColor);
+            var style = GetNewStyle(System.Drawing.Color.Aqua);
 
             if (part.Styles is not null)
             {

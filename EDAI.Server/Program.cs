@@ -1,7 +1,10 @@
 using System.Text.Json.Serialization;
 using EDAI.Server.Data;
+using EDAI.Services;
+using EDAI.Services.Interfaces;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.Entities;
+using EDAI.Shared.Tools;
 using Json.More;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
@@ -21,13 +24,15 @@ builder.Services.AddDbContext<EdaiContext>(options =>
             context.Set<Assignment>().Add(testAssignment);
             var testEssay = new Essay() { Assignment = testAssignment, Student = testStudent, Evaluated = false };
             context.Set<Essay>().Add(testEssay);
-            var testScore = new Score() {AssignmentAnswer = "Nice", EloquenceScore = 43, GrammarScore = 56, AssignmentAnswerScore = 32, OverallScore = 44, OverallStructure = "Very structured", Essay = testEssay};
+            var testScore = new Score() {AssignmentAnswer = "Nice", EloquenceScore = 4, GrammarScore = 3, AssignmentAnswerScore = 3, OverallScore = 4, OverallStructure = "Very structured", Essay = testEssay};
             context.Set<Score>().Add(testScore);
             context.SaveChanges();
         }));
 
 // Add services to the container.
 
+builder.Services.AddScoped<IWordFileHandler, WordFileHandler>();
+builder.Services.AddScoped<IOpenAiService, OpenAiService>();
 builder.Services.AddControllersWithViews().AddJsonOptions(options => 
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
 builder.Services.Configure<JsonOptions>(options => options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);

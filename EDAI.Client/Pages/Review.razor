@@ -1,0 +1,101 @@
+﻿@page "/review"
+@using System.IO.Compression
+@using System.Net.Mime
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.Entities
+@using Microsoft.AspNetCore.Mvc
+@inject HttpClient _Client
+@inject IJSRuntime JS
+
+
+<PageTitle>Review</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Review</MudText>
+
+<MudGrid>
+    <MudItem>
+        <MudSwitch @bind-Value="_selectable">Select</MudSwitch>
+    </MudItem>
+    <MudItem xs="12">
+        <MudDataGrid T="ScoreDTO" MultiSelection="true" Items="_scores" ReadOnly="true" Bordered="false" Dense="false" bind-SelectedItems="_selectedScores">
+            <Columns>
+                @if (_selectable)
+                {
+                <SelectColumn T="ScoreDTO"/>
+                }
+                <PropertyColumn Property="s => s.Student.FirstName" Title="First Name" Editable="false"/>
+                <PropertyColumn Property="s => s.Student.LastName" Title="Last Name" Editable="false"/>
+                <PropertyColumn Property="s => s.Student.Class" Title="Class" Editable="false"/>
+                <PropertyColumn Property="s => s.AssignmentName" Title="Assignment" Editable="false"/>
+                <PropertyColumn Property="s => s.ArgumentationScore" Title="Argumentation" Editable="false"/>
+                <PropertyColumn Property="s => s.EloquenceScore" Title="Eloquence" Editable="false"/>
+                <PropertyColumn Property="s => s.GrammarScore" Title="Grammar" Editable="false"/>
+                <PropertyColumn Property="s => s.AssignmentAnswerScore" Title="Assignment Answer" Editable="false"/>
+                <PropertyColumn Property="s => s.ArgumentationScore" Title="Essay Structure" Editable="false"/>
+                <PropertyColumn Property="s => s.OverallScore" Title="Overall Score" Editable="false"/>
+                <TemplateColumn CellClass="d-flex justify-end" Title="Reviewed Essay">
+                    <CellTemplate>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">File</MudButton>
+                    </CellTemplate>
+                </TemplateColumn>    
+            </Columns>
+            
+            <PagerContent>
+                <MudDataGridPager T="ScoreDTO" />
+            </PagerContent>
+        </MudDataGrid>
+    </MudItem>
+    <MudItem xs="12">
+        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_selectedScores.Count == 0)" OnClick="DownloadFiles"> Download files</MudButton>
+    </MudItem>
+</MudGrid>
+
+
+
+@code {
+    private IEnumerable<ScoreDTO> _scores;
+
+    private HashSet<ScoreDTO> _selectedScores = new HashSet<ScoreDTO>();
+
+    private IEnumerable<AssignmentDTO> _assignments;
+
+    private AssignmentDTO _assignment;
+
+    private bool _selectable = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        _scores = await _Client.GetFromJsonAsync<IEnumerable<ScoreDTO>>("Score", options);
+    }
+
+    public async Task DownloadFiles()
+    {
+        var files = _selectedScores.Select(s => new { s.EvaluatedEssayDocument.DocumentName, s.EvaluatedEssayDocument.DocumentFile });
+
+        using var memoryStream = new MemoryStream();
+        using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var file in files)
+            {
+                var entry = zipArchive.CreateEntry(file.DocumentName);
+                using var entryStream = entry.Open();
+                await entryStream.WriteAsync(file.DocumentFile, 0, file.DocumentFile.Length);
+            }
+        }
+
+        memoryStream.Seek(0, SeekOrigin.Begin);
+
+        await JS.InvokeVoidAsync("downloardFile", "reviewedDocuments.zip", memoryStream.ToArray());
+        
+    }
+
+
+}

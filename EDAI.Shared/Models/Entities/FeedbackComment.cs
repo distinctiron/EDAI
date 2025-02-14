@@ -1,11 +1,19 @@
+using EDAI.Shared.Models.Enums;
+
 namespace EDAI.Shared.Models.Entities;
 
-public class FeedbackComment
+public class FeedbackComment : BaseComment
 {
-    public int FeedbackCommentId { get; set; }
+    public FeedbackComment() {}
+
+    public FeedbackComment(BaseComment comment, CommentType commentType)
+    {
+        this.CommentType = commentType;
+        this.CommentFeedback = comment.CommentFeedback;
+        this.RelatedText = comment.RelatedText;
+        this.RelatedTextId = comment.RelatedTextId;
+        this.FeedbackCommentId = comment.FeedbackCommentId;
+    }
     
-    public int RelatedTextId { get; set; }
-    public IndexedContent? RelatedText { get; set; } = null!;
-    
-    public string CommentFeedback { get; set; }
+    public CommentType CommentType { get; set; }
 }

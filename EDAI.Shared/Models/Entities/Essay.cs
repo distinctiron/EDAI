@@ -4,7 +4,7 @@ public class Essay
 {
     public int EssayId { get; set; }
     
-    public int? EdaiDocumentId { get; set; } 
+    public int EdaiDocumentId { get; set; } 
     public EdaiDocument? Document { get; set; }
 
     public ICollection<IndexedContent>? IndexedEssay { get; set; } = new List<IndexedContent>();

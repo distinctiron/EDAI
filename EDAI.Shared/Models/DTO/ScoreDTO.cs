@@ -1,7 +1,11 @@
 ﻿namespace EDAI.Shared.Models.Entities;
 
-public class Score
+public class ScoreDTO
 {
+    public Student Student { get; set; }
+
+    public string AssignmentName { get; set; }
+    
     public int ScoreId { get; set; }
     
     public int EssayId { get; set; }
