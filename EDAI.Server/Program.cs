@@ -22,10 +22,13 @@ builder.Services.AddDbContext<EdaiContext>(options =>
             context.Set<Student>().Add(testStudent);
             var testAssignment = new Assignment() {Name = "First Assignment", Description = "This is the first assignment.", Open = true};
             context.Set<Assignment>().Add(testAssignment);
-            var testEssay = new Essay() { Assignment = testAssignment, Student = testStudent, Evaluated = false };
+            var fileBytes = new byte[10];
+            var testDocument = new EdaiDocument() {DocumentFile = fileBytes, DocumentFileExtension = "docx", DocumentName = "TestDocument"};
+            context.Set<EdaiDocument>().Add(testDocument);
+            var testEssay = new Essay() { Assignment = testAssignment, Student = testStudent, Evaluated = false, Document = testDocument};
             context.Set<Essay>().Add(testEssay);
-            var testScore = new Score() {AssignmentAnswer = "Nice", EloquenceScore = 4, GrammarScore = 3, AssignmentAnswerScore = 3, OverallScore = 4, OverallStructure = "Very structured", Essay = testEssay};
-            context.Set<Score>().Add(testScore);
+            //var testScore = new Score() {AssignmentAnswer = "Nice", EloquenceScore = 4, GrammarScore = 3, AssignmentAnswerScore = 3, OverallScore = 4, OverallStructure = "Very structured", Essay = testEssay};
+            //context.Set<Score>().Add(testScore);
             context.SaveChanges();
         }));
 
@@ -33,8 +36,8 @@ builder.Services.AddDbContext<EdaiContext>(options =>
 
 builder.Services.AddScoped<IWordFileHandler, WordFileHandler>();
 builder.Services.AddScoped<IOpenAiService, OpenAiService>();
-builder.Services.AddControllersWithViews().AddJsonOptions(options => 
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
+builder.Services.AddControllersWithViews();
+    //.AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
 builder.Services.Configure<JsonOptions>(options => options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
 builder.Services.AddRazorPages();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

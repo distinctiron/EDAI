@@ -44,7 +44,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     }
 
     [HttpPost("bulk", Name = "BulkAddEssay")]
-    public IResult BulkAddEssay(IEnumerable<EssayFileDTO> essays)
+    public ActionResult<List<int>> BulkAddEssay(IEnumerable<EssayFileDTO> essays)
     {
         
         var entities = _mapper.Map<IEnumerable<Essay>>(essays);
@@ -53,11 +53,20 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
             entity.StudentId = entity.Student.StudentId;
             entity.Student = null;
         }
-        var enumerable = entities.ToList();
-        context.Essays.AddRange(enumerable);
-        
+        context.Essays.AddRange(entities);
         context.SaveChanges();
-        return Results.Ok(enumerable.Select(essay => essay.EssayId));
+        
+        
+        var ids = entities.Select(e => e.EssayId).ToList();
+        /*
+        var json = JsonSerializer.Serialize(ids, new JsonSerializerOptions
+        {
+            ReferenceHandler = null, // Explicitly turn off ReferenceHandler
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        return Content(json,"application/json");*/
+
+        return Ok(ids);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteEssay")]

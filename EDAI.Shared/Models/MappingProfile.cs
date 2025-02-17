@@ -14,5 +14,7 @@ public class MappingProfile : Profile
         CreateMap<AssignmentDTO, Assignment>();
         CreateMap<Student, StudentDTO>();
         CreateMap<StudentDTO, Student>();
+        CreateMap<IndexedContent, IndexedContent>();
+        
     }
 }

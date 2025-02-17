@@ -9,7 +9,6 @@ using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
-using MudBlazor;
 
 namespace EDAI.Server.Controllers;
 
@@ -53,7 +52,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
         {
             string referenceText = null;
 
-            if (assignment?.ReferenceDocument.DocumentFileExtension == "pdf")
+            if (assignment?.ReferenceDocument?.DocumentFileExtension == "pdf")
             {
                 referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
             }
@@ -166,7 +165,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
         return Results.File(bytes, "application/octet-stream", document.DocumentName);
     }
 
-    public async Task<ConversationDTO> OpenAIConversor(IEnumerable<IndexedContent> contents, string asssignmentDescription, string referenceText)
+    private async Task<ConversationDTO> OpenAIConversor(IEnumerable<IndexedContent> contents, string asssignmentDescription, string referenceText)
     {
         openAiService.SetIndexedContents(contents, asssignmentDescription, referenceText);
         

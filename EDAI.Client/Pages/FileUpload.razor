@@ -153,12 +153,16 @@
         _validStudents = true;
 
         var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essays);
+        //var content = await essayResponse.Content.ReadAsStringAsync();
+        //Console.WriteLine($"Response Content: {content}");
         
         if (essayResponse.IsSuccessStatusCode)
         {
             _errorInFilesUploaded = false;
             _filesUploadedSuccesfully = true;
-            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", essayResponse.Content.ReadFromJsonAsync<IEnumerable<int>>());
+            var ids = await essayResponse.Content.ReadFromJsonAsync<List<int>>();
+            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", ids);
+            Console.WriteLine(scoreResponse.StatusCode);
         }
         else
         {

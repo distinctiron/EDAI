@@ -16,7 +16,7 @@ namespace EDAI.Services;
 public class OpenAiService : IOpenAiService
 {
     private static string keyFromEnvironment =
-        ""; 
+        "14iJ5AHR1VzKxf8yHNmWWqEFGPKz41zIo06oG816TufVbeKNyDwKJQQJ99AKACfhMk5XJ3w3AAABACOGRcGt"; 
         
         //Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
     
