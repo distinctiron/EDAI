@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EDAI.Server.Migrations
 {
     [DbContext(typeof(EdaiContext))]
-    [Migration("20250105000907_createDatabase")]
+    [Migration("20250217174128_createDatabase")]
     partial class createDatabase
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace EDAI.Server.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
-            modelBuilder.Entity("EDAI.Shared.Models.Assignment", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Assignment", b =>
                 {
                     b.Property<int>("AssignmentId")
                         .ValueGeneratedOnAdd()
@@ -47,7 +47,7 @@ namespace EDAI.Server.Migrations
                     b.ToTable("Assignments");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.EdaiDocument", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.EdaiDocument", b =>
                 {
                     b.Property<int>("EdaiDocumentId")
                         .ValueGeneratedOnAdd()
@@ -73,7 +73,7 @@ namespace EDAI.Server.Migrations
                     b.ToTable("Documents");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Essay", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Essay", b =>
                 {
                     b.Property<int>("EssayId")
                         .ValueGeneratedOnAdd()
@@ -82,7 +82,7 @@ namespace EDAI.Server.Migrations
                     b.Property<int>("AssignmentId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("EdaiDocumentId")
+                    b.Property<int>("EdaiDocumentId")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("Evaluated")
@@ -102,7 +102,7 @@ namespace EDAI.Server.Migrations
                     b.ToTable("Essays");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.FeedbackComment", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.FeedbackComment", b =>
                 {
                     b.Property<int>("FeedbackCommentId")
                         .ValueGeneratedOnAdd()
@@ -111,6 +111,9 @@ namespace EDAI.Server.Migrations
                     b.Property<string>("CommentFeedback")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("CommentType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("RelatedTextId")
                         .HasColumnType("INTEGER");
@@ -122,7 +125,7 @@ namespace EDAI.Server.Migrations
                     b.ToTable("FeedbackComments");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.IndexedContent", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.IndexedContent", b =>
                 {
                     b.Property<int>("IndexedContentId")
                         .ValueGeneratedOnAdd()
@@ -157,18 +160,33 @@ namespace EDAI.Server.Migrations
                     b.ToTable("IndexedContents");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Score", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Score", b =>
                 {
                     b.Property<int>("ScoreId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ArgumentationRecommendation")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<float>("ArgumentationScore")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("AssignmentAnswer")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AssignmentAnswerRecommendation")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<float>("AssignmentAnswerScore")
                         .HasColumnType("REAL");
+
+                    b.Property<string>("EloquenceRecommendation")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<float>("EloquenceScore")
                         .HasColumnType("REAL");
@@ -178,6 +196,10 @@ namespace EDAI.Server.Migrations
 
                     b.Property<int?>("EvaluatedEssayDocumentId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("GrammarRecommendation")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<float>("GrammarScore")
                         .HasColumnType("REAL");
@@ -189,6 +211,13 @@ namespace EDAI.Server.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OverallStructureRecommendation")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<float>("OverallStructureScore")
+                        .HasColumnType("REAL");
+
                     b.HasKey("ScoreId");
 
                     b.HasIndex("EssayId");
@@ -198,7 +227,7 @@ namespace EDAI.Server.Migrations
                     b.ToTable("Scores");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Student", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Student", b =>
                 {
                     b.Property<int>("StudentId")
                         .ValueGeneratedOnAdd()
@@ -224,28 +253,30 @@ namespace EDAI.Server.Migrations
                     b.ToTable("Students");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Assignment", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Assignment", b =>
                 {
-                    b.HasOne("EDAI.Shared.Models.EdaiDocument", "ReferenceDocument")
+                    b.HasOne("EDAI.Shared.Models.Entities.EdaiDocument", "ReferenceDocument")
                         .WithMany()
                         .HasForeignKey("ReferenceDocumentId");
 
                     b.Navigation("ReferenceDocument");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Essay", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Essay", b =>
                 {
-                    b.HasOne("EDAI.Shared.Models.Assignment", "Assignment")
+                    b.HasOne("EDAI.Shared.Models.Entities.Assignment", "Assignment")
                         .WithMany("Essays")
                         .HasForeignKey("AssignmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EDAI.Shared.Models.EdaiDocument", "Document")
+                    b.HasOne("EDAI.Shared.Models.Entities.EdaiDocument", "Document")
                         .WithMany()
-                        .HasForeignKey("EdaiDocumentId");
+                        .HasForeignKey("EdaiDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("EDAI.Shared.Models.Student", "Student")
+                    b.HasOne("EDAI.Shared.Models.Entities.Student", "Student")
                         .WithMany("Essays")
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -258,9 +289,9 @@ namespace EDAI.Server.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.FeedbackComment", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.FeedbackComment", b =>
                 {
-                    b.HasOne("EDAI.Shared.Models.IndexedContent", "RelatedText")
+                    b.HasOne("EDAI.Shared.Models.Entities.IndexedContent", "RelatedText")
                         .WithMany("FeedbackComments")
                         .HasForeignKey("RelatedTextId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -269,9 +300,9 @@ namespace EDAI.Server.Migrations
                     b.Navigation("RelatedText");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.IndexedContent", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.IndexedContent", b =>
                 {
-                    b.HasOne("EDAI.Shared.Models.Essay", "Essay")
+                    b.HasOne("EDAI.Shared.Models.Entities.Essay", "Essay")
                         .WithMany("IndexedEssay")
                         .HasForeignKey("EssayId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -280,15 +311,15 @@ namespace EDAI.Server.Migrations
                     b.Navigation("Essay");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Score", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Score", b =>
                 {
-                    b.HasOne("EDAI.Shared.Models.Essay", "Essay")
+                    b.HasOne("EDAI.Shared.Models.Entities.Essay", "Essay")
                         .WithMany("Scores")
                         .HasForeignKey("EssayId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EDAI.Shared.Models.EdaiDocument", "EvaluatedEssayDocument")
+                    b.HasOne("EDAI.Shared.Models.Entities.EdaiDocument", "EvaluatedEssayDocument")
                         .WithMany()
                         .HasForeignKey("EvaluatedEssayDocumentId");
 
@@ -297,24 +328,24 @@ namespace EDAI.Server.Migrations
                     b.Navigation("EvaluatedEssayDocument");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Assignment", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Assignment", b =>
                 {
                     b.Navigation("Essays");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Essay", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Essay", b =>
                 {
                     b.Navigation("IndexedEssay");
 
                     b.Navigation("Scores");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.IndexedContent", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.IndexedContent", b =>
                 {
                     b.Navigation("FeedbackComments");
                 });
 
-            modelBuilder.Entity("EDAI.Shared.Models.Student", b =>
+            modelBuilder.Entity("EDAI.Shared.Models.Entities.Student", b =>
                 {
                     b.Navigation("Essays");
                 });
