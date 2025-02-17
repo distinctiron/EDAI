@@ -1,11 +1,13 @@
 using System.Text.Json.Serialization;
 using EDAI.Server.Data;
+using EDAI.Server.Hubs;
 using EDAI.Services;
 using EDAI.Services.Interfaces;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Tools;
 using Json.More;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
@@ -32,6 +34,17 @@ builder.Services.AddDbContext<EdaiContext>(options =>
             context.SaveChanges();
         }));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "MyAllowSpecificOrigins",
+        policy =>
+        {
+            policy.WithOrigins("localhost:44388");
+            policy.WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+            policy.AllowCredentials();
+        });
+});
+
 // Add services to the container.
 
 builder.Services.AddScoped<IWordFileHandler, WordFileHandler>();
@@ -44,8 +57,16 @@ builder.Services.AddRazorPages();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/octet-stream" ]);
+});
 
 var app = builder.Build();
+
+app.UseResponseCompression();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -66,5 +87,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
+
+app.MapHub<MessageHub>("/messagehub");
 
 app.Run();
