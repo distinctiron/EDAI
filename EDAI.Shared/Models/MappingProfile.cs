@@ -1,5 +1,6 @@
 using AutoMapper;
 using EDAI.Shared.Models.DTO;
+using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 
 namespace EDAI.Shared.Models;
@@ -14,7 +15,9 @@ public class MappingProfile : Profile
         CreateMap<AssignmentDTO, Assignment>();
         CreateMap<Student, StudentDTO>();
         CreateMap<StudentDTO, Student>();
-        CreateMap<IndexedContent, IndexedContent>();
-        
+        CreateMap<IndexedContent, IndexedContentDTO>();
+        CreateMap<IndexedContentDTO, IndexedContent>();
+        CreateMap<BaseComment, CommentDTO>();
+        CreateMap<CommentDTO, BaseComment>();
     }
 }

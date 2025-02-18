@@ -5,7 +5,7 @@ namespace EDAI.Shared.Tools;
 
 public interface IWordFileHandler
 {
-    public Task<IEnumerable<IndexedContent>> GetIndexedContent(Stream stream);
+    public Task<IEnumerable<IndexedContent>> GetIndexedContent(Stream stream, int essayId);
     
     public Task AddFeedback(Stream stream, string feedback);
 

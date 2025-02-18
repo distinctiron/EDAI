@@ -9,4 +9,6 @@ public interface IOpenAiService
     public Task<IEnumerable<FeedbackComment>> GetCommentsAsync(CommentType commentType, string prompt);
     public Task<string> GetFeedbackAsync(string prompt);
     public Task<float> GetScoreAsync(string prompt);
+
+    public Task<GenerateScoreDTO> AssessEssayAsync();
 }

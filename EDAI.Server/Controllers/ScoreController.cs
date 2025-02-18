@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
+﻿using AutoMapper;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using EDAI.Server.Data;
 using EDAI.Server.Prompts;
 using EDAI.Services;
@@ -14,7 +15,7 @@ namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandler, IOpenAiService openAiService) : ControllerBase
+public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandler, IOpenAiService openAiService, IMapper mapper) : ControllerBase
 {
     [HttpGet(Name = "GetScores")]
     public IEnumerable<Score> GetScores()
@@ -59,7 +60,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
 
             var scores = new List<Score>();
 
-            var indexedContents = new List<IEnumerable<IndexedContent>>();
+            //var indexedContents = new List<IEnumerable<IndexedContent>>();
         
             foreach (var document in documents)
             {
@@ -70,19 +71,30 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                     using MemoryStream reviewedDocumentStream = new MemoryStream();
                     await documentStream.CopyToAsync(reviewedDocumentStream);
                 
-                    var indexedContent = await wordFileHandler.GetIndexedContent(documentStream);
-                    indexedContent.ToList().ForEach(i => i.EssayId = essayId);
+                    var indexedContent = await wordFileHandler.GetIndexedContent(documentStream, essayId);
                     context.IndexedContents.AddRange(indexedContent);
-                    indexedContents.Add(indexedContent);
+                    context.SaveChanges();
+                    //indexedContents.Add(indexedContent);
                 
                     //Consider what order things are written to database to ensure IDs exist
                     var essayFeedback = await OpenAIConversor(indexedContent, assignment.Description, referenceText);
 
                     var comments = essayFeedback.Comments;
+                    foreach (var feedbackComment in comments)
+                    {
+                        var relatedContent = feedbackComment.RelatedText;
+                        feedbackComment.RelatedText = indexedContent.Single(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
+                                && i.RunIndex == relatedContent.RunIndex
+                                && i.TextIndex == relatedContent.TextIndex
+                                && i.EssayId == essayId);
+                         
+                    }
+                    
                     var score = essayFeedback.EssayScore;
                     score.EssayId = essayId;
                 
                     context.FeedbackComments.AddRange(comments);
+                    context.SaveChanges();
 
                     wordFileHandler.AddComments(reviewedDocumentStream, comments);
                     wordFileHandler.AddFeedback(reviewedDocumentStream, score.OverallStructure);
@@ -95,6 +107,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                         DocumentFile = reviewedDocumentStream.ToArray(),
                         UploadDate = DateTime.Now
                     };
+                    context.Documents.Add(reviewedDocument);
                     score.EvaluatedEssayDocument = reviewedDocument;
                 
                     scores.Add(score);
@@ -169,6 +182,17 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
     {
         openAiService.SetIndexedContents(contents, asssignmentDescription, referenceText);
         
+        /*var assignmenAnswerFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideAssignmentAnswerFeedback.Prompt);
+        var structureFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideStructureFeedback.Prompt);
+
+        var assignmentAnswerScore =
+            await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreAssignmentAnswer.Prompt);
+        var structureScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreEssayStructure.Prompt);
+
+        var assignmenAnswerRecommendation =
+            await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveAssignmentAnswerRecommendation.Prompt);
+        var structureReccomendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveEssayStructureRecommendation.Prompt);
+        
         var grammarComments =
             await openAiService.GetCommentsAsync(CommentType.Grammar, TextEvaluatingPrompts.ProvideGrammarComments.Prompt);
         var grammarScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreGrammar.Prompt);
@@ -182,34 +206,45 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
         var argumentComments =
             await openAiService.GetCommentsAsync(CommentType.Logic, TextEvaluatingPrompts.ProvideArgumentComments.Prompt);
         var argumentationScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreArgumentation.Prompt);
-        var argumentationRecommendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveArgumentationRecommendation.Prompt);
+        var argumentationRecommendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveArgumentationRecommendation.Prompt);*/
 
-        var assignmenAnswerFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideAssignmentAnswerFeedback.Prompt);
-        var structureFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideStructureFeedback.Prompt);
+        var generatedScore = await openAiService.AssessEssayAsync();
 
-        var assignmentAnswerScore =
-            await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreAssignmentAnswer.Prompt);
-        var structureScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreEssayStructure.Prompt);
+        List<FeedbackComment> comments = new List<FeedbackComment>();
 
-        var assignmenAnswerRecommendation =
-            await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveAssignmentAnswerRecommendation.Prompt);
-        var structureReccomendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveEssayStructureRecommendation.Prompt);
+        foreach (var grammarComment in generatedScore.GrammarComments)
+        {
+            var baseComment = mapper.Map<BaseComment>(grammarComment);
+            comments.Add(new FeedbackComment(baseComment, CommentType.Grammar));
+        }
+        foreach (var eloquenceComment in generatedScore.EloquenceComments)
+        {
+            var baseComment = mapper.Map<BaseComment>(eloquenceComment);
+            comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
+            
+        }
+        foreach (var argumentationComment in generatedScore.ArgumentationComments)
+        {
+            var baseComment = mapper.Map<BaseComment>(argumentationComment);
+            comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
+        }
+
 
         var score = new Score
         {
-            GrammarScore = grammarScore,
-            GrammarRecommendation = grammarRecommendation,
-            EloquenceScore = eloquenceScore,
-            EloquenceRecommendation = eloquenceRecommendation,
-            ArgumentationScore = argumentationScore,
-            ArgumentationRecommendation = argumentationRecommendation,
-            AssignmentAnswer = assignmenAnswerFeedback,
-            AssignmentAnswerRecommendation = assignmenAnswerRecommendation,
-            OverallStructure = structureFeedback,
-            OverallStructureRecommendation = structureReccomendation
+            GrammarScore = generatedScore.GrammarScore,
+            GrammarRecommendation = generatedScore.GrammarRecommendation,
+            EloquenceScore = generatedScore.EloquenceScore,
+            EloquenceRecommendation = generatedScore.EloquenceRecommendation,
+            ArgumentationScore = generatedScore.ArgumentationScore,
+            ArgumentationRecommendation = generatedScore.ArgumentationRecommendation,
+            AssignmentAnswer = generatedScore.AssignmentAnswer,
+            AssignmentAnswerScore = generatedScore.AssignmentAnswerScore,
+            AssignmentAnswerRecommendation = generatedScore.AssignmentAnswerRecommendation,
+            OverallStructure = generatedScore.OverallStructure,
+            OverallStructureScore = generatedScore.OverallStructureScore,
+            OverallStructureRecommendation = generatedScore.OverallStructureRecommendation
         };
-        
-        var comments = grammarComments.Concat(eloquenceComments).Concat(argumentComments);
 
         var returnDto = new ConversationDTO
         {

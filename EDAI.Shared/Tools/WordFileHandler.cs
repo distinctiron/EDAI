@@ -34,7 +34,7 @@ public class WordFileHandler : IWordFileHandler
         );
     }
 
-    public async Task<IEnumerable<IndexedContent>> GetIndexedContent(Stream stream)
+    public async Task<IEnumerable<IndexedContent>> GetIndexedContent(Stream stream, int essayId)
     {
         return await Task.Run(() =>
             {
@@ -42,7 +42,7 @@ public class WordFileHandler : IWordFileHandler
                 
                 using (var wordDoc = WordprocessingDocument.Open(stream, false))
                 {
-                    indexedContents = IndexContent(wordDoc.MainDocumentPart.Document);
+                    indexedContents = IndexContent(wordDoc.MainDocumentPart.Document, essayId);
                 }
                 
                 return indexedContents;
@@ -50,7 +50,7 @@ public class WordFileHandler : IWordFileHandler
         );
     }
     
-    private IEnumerable<IndexedContent> IndexContent(Document document)
+    private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
     {
         var paragraphIndex = 0;
                     
@@ -69,7 +69,8 @@ public class WordFileHandler : IWordFileHandler
                         ParagraphIndex = paragraphIndex,
                         RunIndex = runIndex,
                         TextIndex = textIndex,
-                        Content = text.InnerText
+                        Content = text.InnerText,
+                        EssayId = essayId
                     };
 
                     textIndex++;
