@@ -70,7 +70,7 @@ namespace EDAI.Server.Migrations
                 {
                     EssayId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    EdaiDocumentId = table.Column<int>(type: "INTEGER", nullable: true),
+                    EdaiDocumentId = table.Column<int>(type: "INTEGER", nullable: false),
                     AssignmentId = table.Column<int>(type: "INTEGER", nullable: false),
                     StudentId = table.Column<int>(type: "INTEGER", nullable: false),
                     Evaluated = table.Column<bool>(type: "INTEGER", nullable: false)
@@ -88,7 +88,8 @@ namespace EDAI.Server.Migrations
                         name: "FK_Essays_Documents_EdaiDocumentId",
                         column: x => x.EdaiDocumentId,
                         principalTable: "Documents",
-                        principalColumn: "EdaiDocumentId");
+                        principalColumn: "EdaiDocumentId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Essays_Students_StudentId",
                         column: x => x.StudentId,
@@ -130,12 +131,19 @@ namespace EDAI.Server.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     EssayId = table.Column<int>(type: "INTEGER", nullable: false),
                     OverallScore = table.Column<float>(type: "REAL", nullable: false),
+                    ArgumentationScore = table.Column<float>(type: "REAL", nullable: false),
+                    ArgumentationRecommendation = table.Column<string>(type: "TEXT", nullable: false),
                     GrammarScore = table.Column<float>(type: "REAL", nullable: false),
+                    GrammarRecommendation = table.Column<string>(type: "TEXT", nullable: false),
                     EloquenceScore = table.Column<float>(type: "REAL", nullable: false),
-                    AssignmentAnswerScore = table.Column<float>(type: "REAL", nullable: false),
+                    EloquenceRecommendation = table.Column<string>(type: "TEXT", nullable: false),
                     EvaluatedEssayDocumentId = table.Column<int>(type: "INTEGER", nullable: true),
                     OverallStructure = table.Column<string>(type: "TEXT", nullable: false),
-                    AssignmentAnswer = table.Column<string>(type: "TEXT", nullable: false)
+                    OverallStructureScore = table.Column<float>(type: "REAL", nullable: false),
+                    OverallStructureRecommendation = table.Column<string>(type: "TEXT", nullable: false),
+                    AssignmentAnswer = table.Column<string>(type: "TEXT", nullable: false),
+                    AssignmentAnswerScore = table.Column<float>(type: "REAL", nullable: false),
+                    AssignmentAnswerRecommendation = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -159,6 +167,7 @@ namespace EDAI.Server.Migrations
                 {
                     FeedbackCommentId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    CommentType = table.Column<int>(type: "INTEGER", nullable: false),
                     RelatedTextId = table.Column<int>(type: "INTEGER", nullable: false),
                     CommentFeedback = table.Column<string>(type: "TEXT", nullable: false)
                 },
