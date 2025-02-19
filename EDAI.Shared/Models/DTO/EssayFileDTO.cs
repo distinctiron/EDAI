@@ -6,7 +6,7 @@ public class EssayFileDTO
 {
     public int AssignmentId { get; set; }
 
-    public Student Student { get; set; }
+    public StudentDTO Student { get; set; }
 
     
     public EdaiDocument Document { get; set; }

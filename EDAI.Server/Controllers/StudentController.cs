@@ -18,7 +18,13 @@ public class StudentController(EdaiContext context, IMapper mapper) : Controller
     {
         var entities = context.Students.Include( s => s.Essays);
 
-        return mapper.Map<IEnumerable<StudentDTO>>(entities);
+        var students = mapper.Map<IEnumerable<StudentDTO>>(entities);
+        foreach (var student in students)
+        {
+            student.FullName = student.LastName + ", " + student.FirstName;
+        }
+
+        return students;
     }
 
     [HttpGet("{id:int}", Name = "GetStudentById")]

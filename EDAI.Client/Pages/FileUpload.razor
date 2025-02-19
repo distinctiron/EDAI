@@ -50,14 +50,9 @@
             <MudDataGrid MultiSelection="true" T="EssayFileDTO" Items="_essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false">
                 <Columns>
                     <PropertyColumn Property="x => x.Document.DocumentName" Title="File Name" Editable="false"/>
-                    <PropertyColumn Property="x => x.Student.FirstName" Title="First Name" Editable="true" CellStyleFunc="@_errorStyle">
+                    <PropertyColumn Property="x => x.Student.FullName" Title="Student" Editable="true">
                         <EditTemplate>
-                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FirstName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
-                        </EditTemplate>
-                    </PropertyColumn>
-                    <PropertyColumn Property="x => x.Student.LastName" Title="Last Name" Editable="true" CellStyleFunc="@_errorStyle">
-                        <EditTemplate>
-                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Student.LastName" SearchFunc="SearchLastName" Required="true" RequiredError="Please Specify Last Name" />
+                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
                         </EditTemplate>
                     </PropertyColumn>
                 </Columns>
@@ -133,7 +128,7 @@
                     DocumentName = file.Name,
                     DocumentFileExtension = Path.GetExtension(file.Name)
                 },
-                Student = new Student()
+                Student = new StudentDTO()
             });
         }
     }
@@ -176,13 +171,15 @@
     {
         foreach (var esssay in _essays)
         {
-            var studentMatches = _students.Where(s => s.FirstName == esssay.Student.FirstName && s.LastName == esssay.Student.LastName);
+            var studentMatches = _students.Where(s => s.FullName == esssay.Student.FullName);
             
             if (studentMatches.Count() == 1)
             {
                 var matchedStudent = studentMatches.Single();
 
                 esssay.Student.StudentId = matchedStudent.StudentId;
+                esssay.Student.FirstName = matchedStudent.FirstName;
+                esssay.Student.LastName = matchedStudent.LastName;
                 esssay.Student.Class = matchedStudent.Class;
                 esssay.Student.GraduationYear = matchedStudent.GraduationYear;
             }
@@ -192,17 +189,6 @@
             }
         }
     }
-
-    private Func<EssayFileDTO, string> _errorStyle => x =>
-    {
-        var studentMatches = _students.Where(s => s.FirstName == x.Student.FirstName && s.LastName == x.Student.LastName);
-
-        if (studentMatches.Count() == 0)
-        {
-            return "background-color:#FFCCCC";
-        }
-        return "background-color:#0000FF";
-    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,17 +236,9 @@
     private async Task<IEnumerable<string>> SearchFirstName(string value, CancellationToken token)
     {
         if (string.IsNullOrEmpty(value))
-            return _students.Select(x => x.FirstName).Distinct();
+            return _students.Select(x => x.FullName).Distinct();
 
-        return _students.Select(x => x.FirstName).Where(firstName => firstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
-    }
-    
-    private async Task<IEnumerable<string>> SearchLastName(string value, CancellationToken token)
-    {
-        if (string.IsNullOrEmpty(value))
-            return _students.Select(x => x.LastName).Distinct();
-
-        return _students.Select(x => x.LastName).Where(lastName => lastName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
+        return _students.Select(x => x.FullName).Where(firstName => firstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
     }
 
 }

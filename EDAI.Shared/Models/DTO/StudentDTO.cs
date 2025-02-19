@@ -11,4 +11,6 @@ public class StudentDTO
     public string Class { get; set; }
     
     public int GraduationYear { get; set; }
+    
+    public string FullName { get; set; }
 }
