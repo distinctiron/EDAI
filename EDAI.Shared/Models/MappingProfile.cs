@@ -2,6 +2,7 @@ using AutoMapper;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
+using OpenAI.Chat;
 
 namespace EDAI.Shared.Models;
 
@@ -15,8 +16,6 @@ public class MappingProfile : Profile
         CreateMap<AssignmentDTO, Assignment>();
         CreateMap<Student, StudentDTO>();
         CreateMap<StudentDTO, Student>();
-        CreateMap<IndexedContent, IndexedContentDTO>();
-        CreateMap<IndexedContentDTO, IndexedContent>();
         CreateMap<BaseComment, CommentDTO>();
         CreateMap<CommentDTO, BaseComment>();
     }

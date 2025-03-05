@@ -4,7 +4,7 @@ namespace EDAI.Shared.Models.Entities;
 
 public class GenerateScoreDTO
 {
-    public float OverallScore { get; set; }
+    public double OverallScore { get; set; }
     
     public float ArgumentationScore { get; set; }
 

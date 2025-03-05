@@ -49,9 +49,66 @@ public class WordFileHandler : IWordFileHandler
             }
         );
     }
+
+    public Dictionary<IndexedContent, Run> GetDictionaryContent(Stream stream, int essayId)
+    {
+        Dictionary<IndexedContent, Run> returnValue;
+
+        using (var wordDoc = WordprocessingDocument.Open(stream, false))
+        {
+            returnValue = IndexDictionaryContent(wordDoc.MainDocumentPart.Document, essayId);
+        }
+
+        return returnValue;
+    }
+
+    public Dictionary<IndexedContent, Run> IndexDictionaryContent(Document document, int essayId)
+    {
+
+        var retrunvalue = new Dictionary<IndexedContent, Run>(); 
+        
+        var charCount = 0;
+        
+        var paragraphIndex = 0;
+                    
+        foreach (var paragraph in document.Descendants<Paragraph>())
+        {
+            var runIndex = 0;
+                        
+            foreach (var run in paragraph.Descendants<Run>())
+            {
+                var textIndex = 0;
+
+                foreach (var text in run.Descendants<Text>())
+                {
+                    var content = new IndexedContent()
+                    {
+                        ParagraphIndex = paragraphIndex,
+                        RunIndex = runIndex,
+                        TextIndex = textIndex,
+                        Content = text.InnerText,
+                        FromCharInContent = ++charCount,
+                        ToCharInContent = text.InnerText.Length + charCount,
+                        EssayId = essayId
+                    };
+                    
+                    retrunvalue.Add(content,run);
+
+                    charCount += text.InnerText.Length;
+                    textIndex++;
+                }
+                runIndex++;
+            }
+            paragraphIndex++;
+        }
+
+        return retrunvalue;
+    }
     
     private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
     {
+        var charCount = 0;
+        
         var paragraphIndex = 0;
                     
         foreach (var paragraph in document.Descendants<Paragraph>())
@@ -70,15 +127,111 @@ public class WordFileHandler : IWordFileHandler
                         RunIndex = runIndex,
                         TextIndex = textIndex,
                         Content = text.InnerText,
+                        FromCharInContent = ++charCount,
+                        ToCharInContent = text.InnerText.Length + charCount,
                         EssayId = essayId
                     };
 
+                    charCount += text.InnerText.Length;
                     textIndex++;
                 }
                 runIndex++;
             }
             paragraphIndex++;
         }
+        
+    }
+
+    public async Task<EdaiDocument> CreateReviewDocument(int essayId, EdaiDocument essayAnswer, IEnumerable<CommentDTO> aiComments)
+    {
+        var reviewedStream = new MemoryStream();
+        
+        using (MemoryStream answerStream = new MemoryStream(essayAnswer.DocumentFile))
+        {
+            var dictionaryContent = GetDictionaryContent(answerStream, essayId);
+
+            await answerStream.CopyToAsync(reviewedStream);
+
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(reviewedStream, true))
+            {
+                var runs = wordDoc.MainDocumentPart.Document.Descendants<Text>();
+                
+                foreach (var comment in aiComments)
+                {
+                    var startChar = comment.RelatedText.FromChar;
+                    var endChar = comment.RelatedText.ToChar;
+
+                    var startContent =
+                        dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
+            
+                    var endContent = dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
+                    
+                    
+                    //Scenario Start matches
+                    if (startContent.FromCharInContent == startChar)
+                    {
+                        if (endContent.ToCharInContent == endChar)
+                        {
+                            var commentRun = dictionaryContent[endContent];
+                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
+                        }
+                        else
+                        {
+                            var commentRun = SplitEndRun(reviewedStream, endContent, endChar);
+                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
+                        }
+                        
+                        
+                        
+                    }
+                    else
+                    {
+                        var commentStartRun = SplitStartRun(reviewedStream, startContent, startChar);
+
+                        if (endContent.ToCharInContent == endChar)
+                        {
+                            AddComments(reviewedStream, commentStartRun, comment.CommentFeedback);
+                        }
+                        else
+                        {
+                            var commentRun = SplitEndRun(reviewedStream, endContent, endChar);
+                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
+                        }
+                    }
+                    
+                }
+                
+            }
+            
+        }
+
+        
+        
+        
+        return new EdaiDocument();
+    }
+
+    private IEnumerable<Run> handleCommentStart(IndexedContent startContent, CommentDTO comment)
+    {
+        if (startContent.FromCharInContent > comment.RelatedText.FromChar)
+        {
+            
+        }
+            
+            
+    }
+
+    private bool isContentIdentical(IndexedContent content1, IndexedContent content2)
+    {
+        var isIdentical = content1.EssayId == content2.EssayId &&
+                          content1.FromCharInContent == content2.FromCharInContent &&
+                          content1.ToCharInContent == content2.ToCharInContent;
+        
+        return isIdentical;
+    }
+
+    public void AddComments(Stream stream, IndexedContent relatedContent, string comment)
+    {
         
     }
     

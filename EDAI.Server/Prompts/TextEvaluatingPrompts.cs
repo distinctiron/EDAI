@@ -1,3 +1,7 @@
+using System.Text.Json;
+using EDAI.Shared.Models.DTO.OpenAI;
+using EDAI.Shared.Models.Entities;
+
 namespace EDAI.Server.Prompts;
 
 public record Text(string Prompt);
@@ -9,7 +13,8 @@ public static class TextEvaluatingPrompts
                  "You provide indespensable assistance to teachers in correcting assignments and tracking the progress of each students and each class.  " +
                  "Your primary goal is to provide formative feedback in an easy accesible language to the foreign students so that they understand their mistake" +
                  "and to score their essays so it is possible to monitor the progression with each assignment. Furthermore your score will also be used" +
-                 "to evaluate the progress of the class as a whole and identify what areas should be revisited by the teacher.");
+                 "to evaluate the progress of the class as a whole and identify what areas should be revisited by the teacher. All of the feedback you provide" +
+                 "must be written in text without any formatting like markdown syntax or without the use of any kinds of icons.");
     
     public static readonly Text ProvideGrammarComments = 
         new Text("You are an AI tutor providing short, specific, and constructive feedback on a student's essay, " +
@@ -541,6 +546,20 @@ public static class TextEvaluatingPrompts
         }
 
         return prompt;
+    }
+
+    public static string ProvideEssay(IEnumerable<CommentRelatedText> essay)
+    {
+        var prompt =
+            "Here is the essay you need to evaluate in a json structure. The structure gives the indexing of the file, " +
+            "so when you create comments, you can refer them to the relevant index: \n";
+
+        var serializedEssay = JsonSerializer.Serialize(essay, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        return prompt + serializedEssay;
     }
 
 }

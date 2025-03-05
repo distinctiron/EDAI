@@ -1,11 +1,7 @@
 ﻿using AutoMapper;
-using DocumentFormat.OpenXml.Office2010.Excel;
 using EDAI.Server.Data;
-using EDAI.Server.Prompts;
-using EDAI.Services;
 using EDAI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
@@ -80,15 +76,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                     var essayFeedback = await OpenAIConversor(indexedContent, assignment.Description, referenceText);
 
                     var comments = essayFeedback.Comments;
-                    foreach (var feedbackComment in comments)
-                    {
-                        var relatedContent = feedbackComment.RelatedText;
-                        feedbackComment.RelatedText = indexedContent.Single(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
-                                && i.RunIndex == relatedContent.RunIndex
-                                && i.TextIndex == relatedContent.TextIndex
-                                && i.EssayId == essayId);
-                         
-                    }
+                    AssignRelatedText(comments, indexedContent, essayId);
                     
                     var score = essayFeedback.EssayScore;
                     score.EssayId = essayId;
@@ -100,9 +88,11 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                     wordFileHandler.AddFeedback(reviewedDocumentStream, score.OverallStructure);
                     wordFileHandler.AddFeedback(reviewedDocumentStream, score.AssignmentAnswer);
 
+                    var fileExtensionIndex = document.DocumentName.IndexOf('.');
+
                     var reviewedDocument = new EdaiDocument
                     {
-                        DocumentName = document.DocumentName + "Reviewed",
+                        DocumentName = document.DocumentName.Insert(fileExtensionIndex,"Reviewed") ,
                         DocumentFileExtension = document.DocumentFileExtension,
                         DocumentFile = reviewedDocumentStream.ToArray(),
                         UploadDate = DateTime.Now
@@ -180,33 +170,7 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
 
     private async Task<ConversationDTO> OpenAIConversor(IEnumerable<IndexedContent> contents, string asssignmentDescription, string referenceText)
     {
-        openAiService.SetIndexedContents(contents, asssignmentDescription, referenceText);
-        
-        /*var assignmenAnswerFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideAssignmentAnswerFeedback.Prompt);
-        var structureFeedback = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.ProvideStructureFeedback.Prompt);
-
-        var assignmentAnswerScore =
-            await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreAssignmentAnswer.Prompt);
-        var structureScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreEssayStructure.Prompt);
-
-        var assignmenAnswerRecommendation =
-            await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveAssignmentAnswerRecommendation.Prompt);
-        var structureReccomendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveEssayStructureRecommendation.Prompt);
-        
-        var grammarComments =
-            await openAiService.GetCommentsAsync(CommentType.Grammar, TextEvaluatingPrompts.ProvideGrammarComments.Prompt);
-        var grammarScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreGrammar.Prompt);
-        var grammarRecommendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveGrammarRecommendation.Prompt);
-        
-        var eloquenceComments =
-            await openAiService.GetCommentsAsync(CommentType.Eloquence, TextEvaluatingPrompts.ProvideEloquenceComments.Prompt);
-        var eloquenceScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreEloquence.Prompt);
-        var eloquenceRecommendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveEloquenceRecommendation.Prompt);
-        
-        var argumentComments =
-            await openAiService.GetCommentsAsync(CommentType.Logic, TextEvaluatingPrompts.ProvideArgumentComments.Prompt);
-        var argumentationScore = await openAiService.GetScoreAsync(TextEvaluatingPrompts.ScoreArgumentation.Prompt);
-        var argumentationRecommendation = await openAiService.GetFeedbackAsync(TextEvaluatingPrompts.GiveArgumentationRecommendation.Prompt);*/
+        openAiService.SetIndexedContents(mapper.Map<IEnumerable<CommentRelatedText>>(contents), asssignmentDescription, referenceText);
 
         var generatedScore = await openAiService.AssessEssayAsync();
 
@@ -254,5 +218,54 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
 
         return returnDto;
 
+    }
+
+    private void AssignRelatedText(IEnumerable<FeedbackComment> comments, IEnumerable<IndexedContent> indexedContent, int essayId)
+    {
+        try
+        {
+            foreach (var feedbackComment in comments)
+            {
+                var relatedContent = feedbackComment.RelatedText;
+                feedbackComment.RelatedText = indexedContent.Single(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
+                                                                         && i.RunIndex == relatedContent.RunIndex
+                                                                         && i.TextIndex == relatedContent.TextIndex
+                                                                         && i.EssayId == essayId);
+            }
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            foreach (var feedbackComment in comments)
+            {
+                var relatedContent = feedbackComment.RelatedText;
+                var matchingElements = indexedContent.Count(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
+                                                                 && i.RunIndex == relatedContent.RunIndex
+                                                                 && i.TextIndex == relatedContent.TextIndex
+                                                                 && i.EssayId == essayId);
+                if (matchingElements == 0)
+                {
+                    Console.WriteLine($"No matcing elements for OpenAI related content - Paragraph: {relatedContent.ParagraphIndex}, Run: {relatedContent.RunIndex}, Text: {relatedContent.TextIndex}");
+                }
+            }
+            
+            Console.WriteLine("Indexes in database");
+            foreach (var content in indexedContent)
+            {
+                var indexes = $"ParagraphIndex: {content.ParagraphIndex.ToString()}, RunIndex: {content.RunIndex.ToString()}, TextIndex: {content.TextIndex}";
+                Console.WriteLine(indexes);
+            }
+            
+            Console.WriteLine("Indexes from OpenAI");
+            foreach (var comment in comments)
+            {
+                var indexes = $"ParagraphIndex: {comment.RelatedText.ParagraphIndex.ToString()}, RunIndex: {comment.RelatedText.RunIndex.ToString()}, TextIndex: {comment.RelatedText.TextIndex}";
+                Console.WriteLine(indexes);
+            }
+            
+            throw;
+        }
+        
     }
 }
