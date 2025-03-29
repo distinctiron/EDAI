@@ -1,5 +1,7 @@
 using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Office2010.Word.DrawingCanvas;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using EDAI.Shared.Models;
@@ -8,58 +10,88 @@ using EDAI.Shared.Models.Entities;
 using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using Comment = DocumentFormat.OpenXml.Wordprocessing.Comment;
+using CommentRangeEnd = DocumentFormat.OpenXml.Wordprocessing.CommentRangeEnd;
+using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace EDAI.Shared.Tools;
 
-public class WordFileHandler : IWordFileHandler
+public class WordFileHandler : IDisposable
 {
     
     // This class needs a big refactor as methods are too long, contain too many parameters and have non-obvious side effects.
     // This will be done once UI is functional to ensure lower lead times for functional refactoring
-    public async Task<string> ReadFileAsync(Stream stream)
-    {
-        return await Task.Run(() =>
-            {
-                StringBuilder text = new StringBuilder();
+    private Stream _answerDocumentStream;
 
-                using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(stream, false))
-                {
-                    var body = wordDoc.MainDocumentPart.Document.Body;
-                    
-                    text.Append(body.InnerText);
-                }
-                
-                return text.ToString();
-            }
-        );
+    private Stream _reviewedDocumentStream;
+    
+    private WordprocessingDocument _answerDocument;
+    
+    private WordprocessingDocument _reviewedDocument;
+
+    private bool _isOriginalDisposed = false;
+
+    private bool _isReviewedDisposed = false;
+
+    private int _essayId;
+
+    public WordFileHandler(Stream stream, int essayId)
+    {
+        _answerDocumentStream = stream;
+        _reviewedDocumentStream = stream;
+        _essayId = essayId;
+
+        _answerDocument = WordprocessingDocument.Open(_answerDocumentStream, false);
+        _reviewedDocument = WordprocessingDocument.Open(_reviewedDocumentStream, false);
     }
-
-    public async Task<IEnumerable<IndexedContent>> GetIndexedContent(Stream stream, int essayId)
+    
+    public void Dispose()
     {
-        return await Task.Run(() =>
-            {
-                IEnumerable<IndexedContent> indexedContents;
-                
-                using (var wordDoc = WordprocessingDocument.Open(stream, false))
-                {
-                    indexedContents = IndexContent(wordDoc.MainDocumentPart.Document, essayId);
-                }
-                
-                return indexedContents;
-            }
-        );
-    }
-
-    public Dictionary<IndexedContent, Run> GetDictionaryContent(Stream stream, int essayId)
-    {
-        Dictionary<IndexedContent, Run> returnValue;
-
-        using (var wordDoc = WordprocessingDocument.Open(stream, false))
+        if (!_isOriginalDisposed)
         {
-            returnValue = IndexDictionaryContent(wordDoc.MainDocumentPart.Document, essayId);
+            _answerDocumentStream.Dispose();
+            _isOriginalDisposed = true;
         }
 
-        return returnValue;
+        if (!_isReviewedDisposed)
+        {
+            _reviewedDocumentStream.Dispose();
+            _isReviewedDisposed = true;
+        }
+        
+        _reviewedDocument.Dispose();
+    }
+    
+    private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
+    {
+        var charCount = 0;
+        
+        var paragraphIndex = 0;
+                    
+        foreach (var paragraph in document.Descendants<Paragraph>())
+        {
+            var runIndex = 0;
+                        
+            foreach (var run in paragraph.Descendants<Run>())
+            {
+                yield return new IndexedContent()
+                {
+                    EssayId = essayId,
+                    ParagraphIndex = paragraphIndex,
+                    RunIndex = runIndex,
+                    Content = run.InnerText,
+                    FromCharInContent = ++charCount,
+                    ToCharInContent = run.InnerText.Length + charCount
+                };
+
+                charCount += run.InnerText.Length;
+                
+                runIndex++;
+            }
+            paragraphIndex++;
+        }
+        
     }
 
     public Dictionary<IndexedContent, Run> IndexDictionaryContent(Document document, int essayId)
@@ -77,26 +109,19 @@ public class WordFileHandler : IWordFileHandler
                         
             foreach (var run in paragraph.Descendants<Run>())
             {
-                var textIndex = 0;
-
-                foreach (var text in run.Descendants<Text>())
+                var content = new IndexedContent()
                 {
-                    var content = new IndexedContent()
-                    {
-                        ParagraphIndex = paragraphIndex,
-                        RunIndex = runIndex,
-                        TextIndex = textIndex,
-                        Content = text.InnerText,
-                        FromCharInContent = ++charCount,
-                        ToCharInContent = text.InnerText.Length + charCount,
-                        EssayId = essayId
-                    };
+                    ParagraphIndex = paragraphIndex,
+                    RunIndex = runIndex,
+                    Content = run.InnerText,
+                    FromCharInContent = ++charCount,
+                    ToCharInContent = run.InnerText.Length + charCount,
+                    EssayId = essayId
+                };
                     
-                    retrunvalue.Add(content,run);
+                retrunvalue.Add(content,run);
 
-                    charCount += text.InnerText.Length;
-                    textIndex++;
-                }
+                charCount += run.InnerText.Length;
                 runIndex++;
             }
             paragraphIndex++;
@@ -104,138 +129,211 @@ public class WordFileHandler : IWordFileHandler
 
         return retrunvalue;
     }
-    
-    private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
+
+    public async Task<(EdaiDocument, IEnumerable<IndexedContent>)> CreateReviewDocument(EdaiDocument essayAnswer, IEnumerable<CommentDTO> aiComments)
     {
-        var charCount = 0;
+
+        var dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+
+        var runs = _reviewedDocument.MainDocumentPart.Document.Descendants<Run>();
         
-        var paragraphIndex = 0;
-                    
-        foreach (var paragraph in document.Descendants<Paragraph>())
+        EnsureCommentsPartExists();
+
+        foreach (var comment in aiComments)
         {
-            var runIndex = 0;
-                        
-            foreach (var run in paragraph.Descendants<Run>())
+            var startChar = comment.RelatedText.FromChar;
+            var endChar = comment.RelatedText.ToChar;
+            
+            var startContent =
+                dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
+            var startRun = dictionaryContent[startContent];
+            
+            var endContent = dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
+            var endRun = dictionaryContent[endContent];
+                    
+            if (startContent.FromCharInContent == startChar)
             {
-                var textIndex = 0;
-
-                foreach (var text in run.Descendants<Text>())
+                if (startContent.ToCharInContent == endChar)
                 {
-                    yield return new IndexedContent()
-                    {
-                        ParagraphIndex = paragraphIndex,
-                        RunIndex = runIndex,
-                        TextIndex = textIndex,
-                        Content = text.InnerText,
-                        FromCharInContent = ++charCount,
-                        ToCharInContent = text.InnerText.Length + charCount,
-                        EssayId = essayId
-                    };
-
-                    charCount += text.InnerText.Length;
-                    textIndex++;
+                    AddComment(startRun, startRun, comment.CommentFeedback);
                 }
-                runIndex++;
+                else if (endContent.ToCharInContent == endChar)
+                { 
+                    AddComment(startRun, endRun, comment.CommentFeedback);
+                }
+                else
+                {
+                    var splitEndRuns = SplitRun(endRun, endChar);
+                    AddComment(startRun, splitEndRuns.Item1, comment.CommentFeedback);
+                }
             }
-            paragraphIndex++;
-        }
-        
-    }
-
-    public async Task<EdaiDocument> CreateReviewDocument(int essayId, EdaiDocument essayAnswer, IEnumerable<CommentDTO> aiComments)
-    {
-        var reviewedStream = new MemoryStream();
-        
-        using (MemoryStream answerStream = new MemoryStream(essayAnswer.DocumentFile))
-        {
-            var dictionaryContent = GetDictionaryContent(answerStream, essayId);
-
-            await answerStream.CopyToAsync(reviewedStream);
-
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(reviewedStream, true))
+            else
             {
-                var runs = wordDoc.MainDocumentPart.Document.Descendants<Text>();
-                
-                foreach (var comment in aiComments)
+                var splitStartRuns = SplitRun(startRun, startChar);
+                var newStartRun = splitStartRuns.Item2;
+
+                if (startContent.ToCharInContent == endChar)
                 {
-                    var startChar = comment.RelatedText.FromChar;
-                    var endChar = comment.RelatedText.ToChar;
-
-                    var startContent =
-                        dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
-            
-                    var endContent = dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
-                    
-                    
-                    //Scenario Start matches
-                    if (startContent.FromCharInContent == startChar)
-                    {
-                        if (endContent.ToCharInContent == endChar)
-                        {
-                            var commentRun = dictionaryContent[endContent];
-                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
-                        }
-                        else
-                        {
-                            var commentRun = SplitEndRun(reviewedStream, endContent, endChar);
-                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
-                        }
-                        
-                        
-                        
-                    }
-                    else
-                    {
-                        var commentStartRun = SplitStartRun(reviewedStream, startContent, startChar);
-
-                        if (endContent.ToCharInContent == endChar)
-                        {
-                            AddComments(reviewedStream, commentStartRun, comment.CommentFeedback);
-                        }
-                        else
-                        {
-                            var commentRun = SplitEndRun(reviewedStream, endContent, endChar);
-                            AddComments(reviewedStream, commentRun, comment.CommentFeedback);
-                        }
-                    }
-                    
+                    AddComment(newStartRun, newStartRun, comment.CommentFeedback);
                 }
-                
+                else if (endContent.ToCharInContent == endChar)
+                {
+                    AddComment(newStartRun, endRun, comment.CommentFeedback);
+                }
+                else
+                {
+                    var endRunSplit = SplitRun(endRun, endChar);
+                    AddComment(newStartRun, endRunSplit.Item1, comment.CommentFeedback);
+                }
             }
-            
         }
 
-        
-        
-        
-        return new EdaiDocument();
-    }
+        var indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
 
-    private IEnumerable<Run> handleCommentStart(IndexedContent startContent, CommentDTO comment)
-    {
-        if (startContent.FromCharInContent > comment.RelatedText.FromChar)
+        return (new EdaiDocument
         {
-            
+            DocumentFile = getArrayFromStream(_reviewedDocumentStream),
+            DocumentName = essayAnswer.DocumentName + "Reviewed"
+        }, indexedContents);
+    }
+
+    private byte[] getArrayFromStream(Stream stream)
+    {
+        using (MemoryStream memoryStream = new MemoryStream())
+        {
+            stream.CopyTo(memoryStream);
+            return memoryStream.ToArray();
         }
-            
-            
     }
 
-    private bool isContentIdentical(IndexedContent content1, IndexedContent content2)
+    public void AddComment(Run startRun, Run endRun, string comment)
     {
-        var isIdentical = content1.EssayId == content2.EssayId &&
-                          content1.FromCharInContent == content2.FromCharInContent &&
-                          content1.ToCharInContent == content2.ToCharInContent;
+        var id = getNextCommentId();
         
-        return isIdentical;
+        CreateComment(comment, id);
+        
+        startRun.InsertBefore(new CommentRangeStart()
+        {
+            Id = id
+        }, startRun.Elements<Text>().First());
+
+        var commentEnd = new CommentRangeEnd()
+        {
+            Id = id
+        };
+        
+        endRun.InsertAfter(commentEnd, endRun.Elements<Text>().Last());
+        
+        endRun.InsertAfter(new Run(new CommentReference()
+        {
+            Id = id
+        }), commentEnd);
     }
 
-    public void AddComments(Stream stream, IndexedContent relatedContent, string comment)
+    private void CreateComment(string comment, string id)
+    {
+        var wordComment = new Comment
+        {
+            Id = id,
+            Author = "EDAI",
+            Initials = "EDAI",
+            Date = DateTime.Now
+        };
+        
+        var commentContent = new Paragraph(new Run(new Text(comment)));
+
+        wordComment.Append(commentContent);
+
+        var wordComments = _reviewedDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
+        wordComments.Append(wordComment);
+        wordComments.Save();
+    }
+
+    public (Run,Run) SplitRun(Run originalRun, int splitIndex)
+    {
+        if (originalRun is null || splitIndex <= 0)
+            throw new ArgumentException($"Invalid arguments: originalRun = {originalRun}, splitIndex = {splitIndex}");
+        
+        var text = originalRun.InnerText;
+        
+        string firstRunContent = text.Substring(0, splitIndex);
+        string secondRunContent = text.Substring(splitIndex);
+
+        var firstRun = new Run(new Text(firstRunContent));
+        var secondRun = new Run(new Text(secondRunContent));
+
+        if (originalRun.RunProperties is not null)
+        {
+            firstRun.RunProperties = originalRun.RunProperties;
+            secondRun.RunProperties = originalRun.RunProperties;
+        }
+
+        var runParent = originalRun.Parent;
+
+        if (runParent is null)
+        {
+            throw new NullReferenceException($"Run with text: \"{originalRun.InnerText}\" does not have parent");
+        }
+        
+        runParent.InsertBefore(firstRun, originalRun);
+        runParent.InsertBefore(secondRun, originalRun);
+        originalRun.Remove();
+
+        return (firstRun, secondRun);
+
+    }
+
+    private void EnsureCommentsPartExists()
+    {
+        var wordProcessingCommentsPart = _reviewedDocument.MainDocumentPart.WordprocessingCommentsPart ??
+                                         _reviewedDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
+
+        wordProcessingCommentsPart.Comments ??= new Comments();
+    }
+
+    private string getNextCommentId()
     {
         
+        var wordCommentParts = _reviewedDocument.MainDocumentPart.GetPartsOfType<WordprocessingCommentsPart>();
+
+        if (!wordCommentParts.Any())
+            return "0";
+        
+        WordprocessingCommentsPart wordCommentPart;
+
+        try
+        {
+            wordCommentPart = wordCommentParts.Single();
+        }
+        catch (InvalidOperationException e)
+        {
+            Console.WriteLine("Document is corrupted as it contains more than one WordProcessingCommentsPart");
+            Console.WriteLine(e);
+            throw;
+        }
+
+        if (!wordCommentPart.Comments.HasChildren)
+            return "0";
+
+        var comments = wordCommentPart.Comments.Descendants<Comment>();
+            
+        var nextId = comments.Select(c =>
+        {
+            if (c.Id is not null && c.Id.Value is not null)
+            {
+                return int.Parse(c.Id.Value);
+            }
+            else
+            {
+                throw new ArgumentNullException("Comment id is null");
+            }
+        }).Max() + 1;
+
+        return nextId.ToString();
+
     }
     
-    public async Task AddComments(Stream stream, IEnumerable<FeedbackComment> comments)
+    public async Task AddComment(Stream stream, IEnumerable<FeedbackComment> comments)
     {
         stream.Position = 0;
         
@@ -273,13 +371,13 @@ public class WordFileHandler : IWordFileHandler
                 }
             }
 
-            id = InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
+            InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
 
         }
         
     }
 
-    private int InsertComments(WordprocessingDocument wordDoc, WordprocessingCommentsPart commentsPart,
+    private void InsertComments(WordprocessingDocument wordDoc, WordprocessingCommentsPart commentsPart,
         IEnumerable<FeedbackComment> feedbackComments, int currentHighestCommentId)
     {
         foreach (var feedbackComment in feedbackComments)
@@ -312,7 +410,7 @@ public class WordFileHandler : IWordFileHandler
             currentHighestCommentId++;
         }
 
-        return currentHighestCommentId;
+        //return currentHighestCommentId;
     }
     
     public async Task AddFeedback(Stream stream, string feedback)

@@ -3,6 +3,7 @@ using EDAI.Server.Data;
 using EDAI.Server.Hubs;
 using EDAI.Services;
 using EDAI.Services.Interfaces;
+using EDAI.Shared.Factories;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Tools;
@@ -47,7 +48,7 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 
-builder.Services.AddScoped<IWordFileHandler, WordFileHandler>();
+builder.Services.AddTransient<IWordFileHandlerFactory, WordFileHandlerFactory>();
 builder.Services.AddScoped<IOpenAiService, OpenAiService>();
 builder.Services.AddControllersWithViews();
     //.AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using EDAI.Server.Data;
 using EDAI.Services.Interfaces;
+using EDAI.Shared.Factories;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
@@ -11,7 +12,7 @@ namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandler, IOpenAiService openAiService, IMapper mapper) : ControllerBase
+public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper) : ControllerBase
 {
     [HttpGet(Name = "GetScores")]
     public IEnumerable<Score> GetScores()
@@ -60,12 +61,20 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
         
             foreach (var document in documents)
             {
-                var essayId = essays.Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single(); 
-            
+                var essayId = essays.Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single();
+
+                using (var wordFileHandler =
+                       wordFileHandlerFactory.CreateWordFileHandler(new MemoryStream(document.DocumentFile), essayId))
+                {
+                    var indexedContent = wordFileHandler.ReviewedIndexed;
+                }
+                
                 using (MemoryStream documentStream = new MemoryStream(document.DocumentFile))
                 {
                     using MemoryStream reviewedDocumentStream = new MemoryStream();
                     await documentStream.CopyToAsync(reviewedDocumentStream);
+
+                    var wordFileHandler = wordFileHandlerFactory.CreateWordFileHandler(reviewedDocumentStream, essayId);
                 
                     var indexedContent = await wordFileHandler.GetIndexedContent(documentStream, essayId);
                     context.IndexedContents.AddRange(indexedContent);
@@ -229,7 +238,6 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                 var relatedContent = feedbackComment.RelatedText;
                 feedbackComment.RelatedText = indexedContent.Single(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
                                                                          && i.RunIndex == relatedContent.RunIndex
-                                                                         && i.TextIndex == relatedContent.TextIndex
                                                                          && i.EssayId == essayId);
             }
 
@@ -242,25 +250,24 @@ public class ScoreController(EdaiContext context, IWordFileHandler wordFileHandl
                 var relatedContent = feedbackComment.RelatedText;
                 var matchingElements = indexedContent.Count(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
                                                                  && i.RunIndex == relatedContent.RunIndex
-                                                                 && i.TextIndex == relatedContent.TextIndex
                                                                  && i.EssayId == essayId);
                 if (matchingElements == 0)
                 {
-                    Console.WriteLine($"No matcing elements for OpenAI related content - Paragraph: {relatedContent.ParagraphIndex}, Run: {relatedContent.RunIndex}, Text: {relatedContent.TextIndex}");
+                    Console.WriteLine($"No matcing elements for OpenAI related content - Paragraph: {relatedContent.ParagraphIndex}, Run: {relatedContent.RunIndex}");
                 }
             }
             
             Console.WriteLine("Indexes in database");
             foreach (var content in indexedContent)
             {
-                var indexes = $"ParagraphIndex: {content.ParagraphIndex.ToString()}, RunIndex: {content.RunIndex.ToString()}, TextIndex: {content.TextIndex}";
+                var indexes = $"ParagraphIndex: {content.ParagraphIndex.ToString()}, RunIndex: {content.RunIndex.ToString()}";
                 Console.WriteLine(indexes);
             }
             
             Console.WriteLine("Indexes from OpenAI");
             foreach (var comment in comments)
             {
-                var indexes = $"ParagraphIndex: {comment.RelatedText.ParagraphIndex.ToString()}, RunIndex: {comment.RelatedText.RunIndex.ToString()}, TextIndex: {comment.RelatedText.TextIndex}";
+                var indexes = $"ParagraphIndex: {comment.RelatedText.ParagraphIndex.ToString()}, RunIndex: {comment.RelatedText.RunIndex.ToString()}";
                 Console.WriteLine(indexes);
             }
             
