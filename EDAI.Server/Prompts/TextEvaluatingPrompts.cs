@@ -45,7 +45,8 @@ public static class TextEvaluatingPrompts
                  "\"You need commas to separate items in a list. Correct it to: ‘I like apples, oranges, and bananas.’\"\n\nFinal Notes:" +
                  "\nEach comment should refer to a specific mistake in the essay.\nKeep feedback short and direct. " +
                  "Young students should be able to understand and apply the corrections easily.\nUse simple, easy-to-follow language." +
-                 "\nDo not overwhelm the student – only correct key mistakes that impact clarity.");
+                 "\nDo not overwhelm the student – only correct key mistakes that impact clarity." +
+                 "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
     public static readonly Text ProvideEloquenceComments =
         new Text("You are an AI tutor providing short, specific, and constructive feedback on a student's essay. Your task is to comment on how well the student expresses their ideas in terms of:" +
@@ -62,7 +63,8 @@ public static class TextEvaluatingPrompts
                  "\nClarity Issues: \"In this sentence: 'The reason why it is good is because it helps people a lot,' you could be more specific. Try explaining how it helps people to make your point clearer.\"" +
                  "\n\nStructural Issues: \"Your ideas jump from 'school rules' to 'friendship' without a connection. Try adding a short sentence to link them, like ‘Following school rules helps build trust in friendships.’\"" +
                  "\n\nWord Choice Issues: \"The word ‘bad’ in ‘This is a bad thing to do’ is too general. Try using a stronger word like ‘unfair’ or ‘harmful’ to show exactly why it’s wrong.\"" +
-                 "\n\nEngagement Issues: \"Your sentence ‘People should be nice to each other’ is a good idea, but it would be stronger with an example. How could someone show kindness in daily life?\"");
+                 "\n\nEngagement Issues: \"Your sentence ‘People should be nice to each other’ is a good idea, but it would be stronger with an example. How could someone show kindness in daily life?\"" +
+                 "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
     public static readonly Text ProvideArgumentComments =
         new Text("You are an AI tutor providing short, specific, and constructive feedback on how well a student's arguments are " +
@@ -87,7 +89,8 @@ public static class TextEvaluatingPrompts
                  "Try giving a specific reason, like ‘Some games can make people aggressive if they play too much.’\"\n\nFinal Notes:" +
                  "\nEach comment should refer to a specific sentence or part of the essay.\nKeep feedback short and direct so that young " +
                  "students can easily understand and apply it.\nUse simple, clear language to help students improve their arguments step by step." +
-                 "\nEncourage deeper reasoning, better structure, and the use of examples.\n");
+                 "\nEncourage deeper reasoning, better structure, and the use of examples.\n"+
+                 "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
     public static readonly Text ProvideAssignmentAnswerFeedback =
         new Text("You are an AI tutor providing formative feedback to a 10-11-year-old student on how well their essay answered the " +
@@ -548,11 +551,10 @@ public static class TextEvaluatingPrompts
         return prompt;
     }
 
-    public static string ProvideEssay(IEnumerable<CommentRelatedText> essay)
+    public static string ProvideEssay(string essay)
     {
         var prompt =
-            "Here is the essay you need to evaluate in a json structure. The structure gives the indexing of the file, " +
-            "so when you create comments, you can refer them to the relevant index: \n";
+            "Here is the essay you need to evaluate in text:\n";
 
         var serializedEssay = JsonSerializer.Serialize(essay, new JsonSerializerOptions
         {

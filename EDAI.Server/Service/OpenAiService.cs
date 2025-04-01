@@ -50,11 +50,11 @@ public class OpenAiService : IOpenAiService
 
     private static ChatClient _client = _openAiClient.GetChatClient("gpt-4o-mini");
 
-    public void SetIndexedContents(IEnumerable<CommentRelatedText> indexedContents, string assignmentDescription, string referencetext = null)
+    public void InitiateConversation(string essayText, string assignmentDescription, string referencetext = null)
     {
         messages.Add(new SystemChatMessage(TextEvaluatingPrompts.SystemRole.Prompt));
         messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideAssignmentContextPrompt(assignmentDescription,referencetext)));
-        messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideEssay(indexedContents)));
+        messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideEssay(essayText)));
     }
 
     public void AddChatAssistantMessage(string answer)

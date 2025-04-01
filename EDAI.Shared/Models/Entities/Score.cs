@@ -5,7 +5,9 @@ public class Score
     public int ScoreId { get; set; }
     
     public int EssayId { get; set; }
+    
     public Essay? Essay { get; set; }
+    
     public float OverallScore { get; set; }
     
     public float ArgumentationScore { get; set; }

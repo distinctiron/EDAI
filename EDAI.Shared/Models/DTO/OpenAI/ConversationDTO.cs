@@ -6,5 +6,5 @@ public class ConversationDTO
 {
     public Score EssayScore { get; set; }
 
-    public IEnumerable<FeedbackComment> Comments { get; set; }
+    public CommentsDTO Comments { get; set; }
 }

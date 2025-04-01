@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -5,6 +6,7 @@ using DocumentFormat.OpenXml.Office2010.Word.DrawingCanvas;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
@@ -114,14 +116,14 @@ public class WordFileHandler : IDisposable
                     ParagraphIndex = paragraphIndex,
                     RunIndex = runIndex,
                     Content = run.InnerText,
-                    FromCharInContent = ++charCount,
+                    FromCharInContent = charCount,
                     ToCharInContent = run.InnerText.Length + charCount,
                     EssayId = essayId
                 };
                     
                 retrunvalue.Add(content,run);
 
-                charCount += run.InnerText.Length;
+                charCount += run.InnerText.Length + 1;
                 runIndex++;
             }
             paragraphIndex++;
@@ -130,19 +132,48 @@ public class WordFileHandler : IDisposable
         return retrunvalue;
     }
 
-    public async Task<(EdaiDocument, IEnumerable<IndexedContent>)> CreateReviewDocument(EdaiDocument essayAnswer, IEnumerable<CommentDTO> aiComments)
+    public string GetDocumentText()
     {
+        return _answerDocument.MainDocumentPart.Document.InnerText;
+    }
 
-        var dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+    public async Task<(EdaiDocument, IEnumerable<IndexedContent>)> CreateReviewDocument(EdaiDocument essayAnswer, GenerateScoreDTO generatedScore)
+    {
 
         var runs = _reviewedDocument.MainDocumentPart.Document.Descendants<Run>();
         
         EnsureCommentsPartExists();
 
+        var aiComments = CommentMapper.assignCharPositions(GetDocumentText() ,generatedScore.ArgumentationComments.Concat(generatedScore.EloquenceComments)
+            .Concat(generatedScore.GrammarComments));
+        
+        
+        
+        InsertFeedback(generatedScore.OverallStructure, System.Drawing.Color.Chocolate);
+        InsertFeedback(generatedScore.AssignmentAnswer, System.Drawing.Color.Firebrick);
+
+        InsertComments(aiComments);
+
+        var indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+
+        var indexOfNameEnd = essayAnswer.DocumentName.IndexOf('.', StringComparison.Ordinal);
+        var reviewedName = essayAnswer.DocumentName.Insert(indexOfNameEnd, "Reviewed");
+        
+        return (new EdaiDocument
+        {
+            DocumentFile = getArrayFromStream(_reviewedDocumentStream),
+            DocumentName = reviewedName
+        }, indexedContents);
+    }
+
+    private void InsertComments(IEnumerable<CommentIndexedDTO> aiComments)
+    {
+        var dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+        
         foreach (var comment in aiComments)
         {
-            var startChar = comment.RelatedText.FromChar;
-            var endChar = comment.RelatedText.ToChar;
+            var startChar = comment.FromChar;
+            var endChar = comment.ToChar;
             
             var startContent =
                 dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
@@ -187,14 +218,6 @@ public class WordFileHandler : IDisposable
                 }
             }
         }
-
-        var indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
-
-        return (new EdaiDocument
-        {
-            DocumentFile = getArrayFromStream(_reviewedDocumentStream),
-            DocumentName = essayAnswer.DocumentName + "Reviewed"
-        }, indexedContents);
     }
 
     private byte[] getArrayFromStream(Stream stream)
@@ -412,69 +435,58 @@ public class WordFileHandler : IDisposable
 
         //return currentHighestCommentId;
     }
-    
-    public async Task AddFeedback(Stream stream, string feedback)
+
+    private void InsertFeedback(string feedback, System.Drawing.Color feedbackColor)
     {
-        stream.Position = 0;
-        
-        using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(stream, true))
+        var stylesPart = _reviewedDocument.MainDocumentPart.StyleDefinitionsPart;
+        if (stylesPart is null)
         {
-            if (wordDoc is null)
-            {
-                throw new ArgumentNullException("Document is null");
-            }
-
-            MainDocumentPart mainDocumentPart = wordDoc.MainDocumentPart ?? wordDoc.AddMainDocumentPart();
-            mainDocumentPart.Document ??= new Document();
-            mainDocumentPart.Document.Body ??= mainDocumentPart.Document.AppendChild(new Body());
-            var body = wordDoc.MainDocumentPart!.Document!.Body;
-
-            var part = wordDoc.MainDocumentPart.StyleDefinitionsPart;
-
-            if (part is null)
-            {
-                part = wordDoc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
-                var root = new Styles();
-                root.Save(part);
-            }
-
-            var style = GetNewStyle(System.Drawing.Color.Aqua);
-
-            if (part.Styles is not null)
-            {
-                part.Styles.Append(style);
-            }
-            else
-            {
-                part.Styles = new Styles();
-                part.Styles.Append(style);
-            }
-            
-            if (body != null)
-            {
-                var paragraph = new Paragraph();
-                var run = new Run();
-
-                paragraph.AppendChild(run);
-                
-                run.AppendChild(new Text(feedback));
-
-                if (!paragraph.Elements<ParagraphProperties>().Any())
-                {
-                    paragraph.PrependChild<ParagraphProperties>(new ParagraphProperties());
-                }
-
-                if (paragraph.ParagraphProperties.ParagraphStyleId is null)
-                {
-                    paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId();
-                }
-
-                paragraph.ParagraphProperties.ParagraphStyleId.Val = "FeedbackStyle";
-                
-                body.AppendChild(paragraph);
-            }
+            stylesPart = _reviewedDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
+            var root = new Styles();
+            root.Save(stylesPart);
         }
+
+        var style = GetNewStyle(feedbackColor);
+
+        if (stylesPart.Styles is not null)
+        {
+            stylesPart.Styles.Append(style);
+        }
+        else
+        {
+            stylesPart.Styles = new Styles();
+            stylesPart.Styles.Append(style);
+        }
+        
+        var body = _reviewedDocument.MainDocumentPart.Document.Body;
+
+        if (body is null)
+            throw new InvalidOperationException("Document has no body");
+
+        var paragraph = new Paragraph();
+
+        var run = new Run();
+        
+        paragraph.AppendChild(run);
+                
+        run.AppendChild(new Text(feedback));
+
+        if (!paragraph.Elements<ParagraphProperties>().Any())
+        {
+            paragraph.PrependChild<ParagraphProperties>(new ParagraphProperties());
+        }
+
+        if (paragraph.ParagraphProperties.ParagraphStyleId is null)
+        {
+            paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId();
+        }
+
+        paragraph.ParagraphProperties.ParagraphStyleId.Val = "FeedbackStyle";
+                
+        body.AppendChild(paragraph);
+
     }
+    
 
     private Style GetNewStyle(System.Drawing.Color styleColor)
     {

@@ -2,11 +2,13 @@
 using EDAI.Server.Data;
 using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
+using EDAI.Shared.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
+using CommentsDTO = EDAI.Shared.Models.DTO.OpenAI.CommentsDTO;
 
 namespace EDAI.Server.Controllers;
 
@@ -54,10 +56,6 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
             {
                 referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
             }
-
-            var scores = new List<Score>();
-
-            //var indexedContents = new List<IEnumerable<IndexedContent>>();
         
             foreach (var document in documents)
             {
@@ -66,9 +64,34 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
                 using (var wordFileHandler =
                        wordFileHandlerFactory.CreateWordFileHandler(new MemoryStream(document.DocumentFile), essayId))
                 {
-                    var indexedContent = wordFileHandler.ReviewedIndexed;
+                    var essayText = wordFileHandler.GetDocumentText();
+                    
+                    openAiService.InitiateConversation(essayText, assignment.Description, referenceText);
+                    
+                    var generatedScore = await openAiService.AssessEssayAsync();
+
+                    var reviewTuple = await wordFileHandler.CreateReviewDocument(document, generatedScore);
+
+                    var indexedContents = reviewTuple.Item2;
+                    
+                    context.IndexedContents.AddRange(indexedContents);
+
+                    var reviewedDocument = reviewTuple.Item1;
+                    context.Documents.Add(reviewedDocument);
+
+                    var outputEntities = OutputEntitiesFromAI(generatedScore, indexedContents);
+
+                    var score = outputEntities.Item1;
+                    score.EvaluatedEssayDocument = reviewedDocument;
+
+                    context.Scores.Add(score);
+                    
+                    var feedbackComments = outputEntities.Item2;
+                    context.FeedbackComments.AddRange(feedbackComments);
+                    
                 }
                 
+                /*
                 using (MemoryStream documentStream = new MemoryStream(document.DocumentFile))
                 {
                     using MemoryStream reviewedDocumentStream = new MemoryStream();
@@ -94,8 +117,8 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
                     context.SaveChanges();
 
                     wordFileHandler.AddComments(reviewedDocumentStream, comments);
-                    wordFileHandler.AddFeedback(reviewedDocumentStream, score.OverallStructure);
-                    wordFileHandler.AddFeedback(reviewedDocumentStream, score.AssignmentAnswer);
+                    wordFileHandler.InsertFeedback(reviewedDocumentStream, score.OverallStructure);
+                    wordFileHandler.InsertFeedback(reviewedDocumentStream, score.AssignmentAnswer);
 
                     var fileExtensionIndex = document.DocumentName.IndexOf('.');
 
@@ -111,9 +134,8 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
                 
                     scores.Add(score);
                 }
+                */
             }
-            
-            context.Scores.AddRange(scores);
             
         }
         
@@ -177,29 +199,95 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.File(bytes, "application/octet-stream", document.DocumentName);
     }
 
-    private async Task<ConversationDTO> OpenAIConversor(IEnumerable<IndexedContent> contents, string asssignmentDescription, string referenceText)
+    private (Score, IEnumerable<FeedbackComment>) OutputEntitiesFromAI(GenerateScoreDTO generatedScore, IEnumerable<IndexedContent> indexedContents)
     {
-        openAiService.SetIndexedContents(mapper.Map<IEnumerable<CommentRelatedText>>(contents), asssignmentDescription, referenceText);
-
-        var generatedScore = await openAiService.AssessEssayAsync();
-
-        List<FeedbackComment> comments = new List<FeedbackComment>();
+        var score = new Score
+        {
+            GrammarScore = generatedScore.GrammarScore,
+            GrammarRecommendation = generatedScore.GrammarRecommendation,
+            EloquenceScore = generatedScore.EloquenceScore,
+            EloquenceRecommendation = generatedScore.EloquenceRecommendation,
+            ArgumentationScore = generatedScore.ArgumentationScore,
+            ArgumentationRecommendation = generatedScore.ArgumentationRecommendation,
+            AssignmentAnswer = generatedScore.AssignmentAnswer,
+            AssignmentAnswerScore = generatedScore.AssignmentAnswerScore,
+            AssignmentAnswerRecommendation = generatedScore.AssignmentAnswerRecommendation,
+            OverallStructure = generatedScore.OverallStructure,
+            OverallStructureScore = generatedScore.OverallStructureScore,
+            OverallStructureRecommendation = generatedScore.OverallStructureRecommendation
+        };
+        
+        var comments = new List<FeedbackComment>();
 
         foreach (var grammarComment in generatedScore.GrammarComments)
         {
-            var baseComment = mapper.Map<BaseComment>(grammarComment);
-            comments.Add(new FeedbackComment(baseComment, CommentType.Grammar));
+            comments.Add(GetFeedbackComment(grammarComment, indexedContents, CommentType.Grammar));
         }
         foreach (var eloquenceComment in generatedScore.EloquenceComments)
         {
-            var baseComment = mapper.Map<BaseComment>(eloquenceComment);
-            comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
-            
+            comments.Add(GetFeedbackComment(eloquenceComment, indexedContents, CommentType.Eloquence));
         }
         foreach (var argumentationComment in generatedScore.ArgumentationComments)
         {
-            var baseComment = mapper.Map<BaseComment>(argumentationComment);
-            comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
+            comments.Add(GetFeedbackComment(argumentationComment, indexedContents, CommentType.Logic));
+        }
+
+        return (score, comments);
+    }
+
+    private FeedbackComment GetFeedbackComment(CommentDTO comment, IEnumerable<IndexedContent> contents, CommentType commentType)
+    {
+        var indexedContents = contents.Where(c => c.Content == comment.RelatedText);
+
+        try
+        {
+            var indexedContent = indexedContents.Single();
+            var baseComment = mapper.Map<BaseComment>(comment);
+            baseComment.RelatedText = indexedContent;
+            return new FeedbackComment(baseComment, commentType);
+        }
+        catch (InvalidOperationException e)
+        {
+            Console.WriteLine($"Multiple indexedContent for comment {comment.CommentFeedback}");
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+/*
+    private async Task<(Score, IEnumerable<FeedbackComment>)> OpenAIConversor(string essayText, string asssignmentDescription, string referenceText)
+    {
+        openAiService.InitiateConversation(essayText, asssignmentDescription, referenceText);
+
+        var generatedScore = await openAiService.AssessEssayAsync();
+        
+
+
+        var comments = new System.Collections.Generic.List<EDAI.Shared.Models.DTO.OpenAI.CommentDTO>();
+
+        foreach (var grammarComment in generatedScore.GrammarComments)
+        {
+            assignCharPositions(essayText, grammarComment);
+            grammarComment.CommentType = CommentType.Grammar.ToString();
+            //var baseComment = mapper.Map<BaseComment>(grammarComment);
+            comments.Add(grammarComment);
+                //new FeedbackComment(baseComment, CommentType.Grammar));
+        }
+        foreach (var eloquenceComment in generatedScore.EloquenceComments)
+        {
+            assignCharPositions(essayText, eloquenceComment);
+            eloquenceComment.CommentType = CommentType.Eloquence.ToString();
+            //var baseComment = mapper.Map<BaseComment>(eloquenceComment);
+            comments.Add(eloquenceComment);
+            //comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
+
+        }
+        foreach (var argumentationComment in generatedScore.ArgumentationComments)
+        {
+            assignCharPositions(essayText, argumentationComment);
+            argumentationComment.CommentType = CommentType.Logic.ToString();
+            //var baseComment = mapper.Map<BaseComment>(argumentationComment);
+            comments.Add(argumentationComment);
+            //comments.Add(new FeedbackComment(baseComment, CommentType.Eloquence));
         }
 
 
@@ -222,12 +310,16 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         var returnDto = new ConversationDTO
         {
             EssayScore = score,
-            Comments = comments
+            Comments = new CommentsDTO()
+            {
+                Comments = comments
+            }
         };
 
         return returnDto;
 
     }
+*/
 
     private void AssignRelatedText(IEnumerable<FeedbackComment> comments, IEnumerable<IndexedContent> indexedContent, int essayId)
     {
