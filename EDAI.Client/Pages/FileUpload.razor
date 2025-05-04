@@ -125,7 +125,7 @@
                 Document = new EdaiDocument
                 {
                     DocumentFile = memoryStream.ToArray(),
-                    DocumentName = file.Name,
+                    DocumentName = Path.GetFileNameWithoutExtension(file.Name),
                     DocumentFileExtension = Path.GetExtension(file.Name)
                 },
                 Student = new StudentDTO()

@@ -10,8 +10,7 @@ public class FeedbackComment : BaseComment
     {
         this.CommentType = commentType;
         this.CommentFeedback = comment.CommentFeedback;
-        this.RelatedText = comment.RelatedText;
-        this.RelatedTextId = comment.RelatedTextId;
+        this.RelatedTexts = comment.RelatedTexts;
         this.FeedbackCommentId = comment.FeedbackCommentId;
     }
     

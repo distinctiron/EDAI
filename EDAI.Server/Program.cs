@@ -11,6 +11,8 @@ using Json.More;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
+using Hangfire;
+using Hangfire.MemoryStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +67,8 @@ builder.Services.AddResponseCompression(opts =>
         ["application/octet-stream" ]);
 });
 
+builder.Services.AddHangfire(configuration => configuration.UseMemoryStorage());
+
 var app = builder.Build();
 
 app.UseResponseCompression();
@@ -76,6 +80,7 @@ if (app.Environment.IsDevelopment())
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHangfireDashboard();
 }
 
 app.UseHttpsRedirection();

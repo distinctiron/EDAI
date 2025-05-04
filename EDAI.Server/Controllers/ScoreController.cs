@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using EDAI.Server.Data;
+using EDAI.Server.Jobs;
 using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
 using EDAI.Shared.Models.DTO;
@@ -8,6 +9,7 @@ using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
+using Hangfire;
 using CommentsDTO = EDAI.Shared.Models.DTO.OpenAI.CommentsDTO;
 
 namespace EDAI.Server.Controllers;
@@ -40,6 +42,9 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpPost("generatescores", Name = "GenerateScores")]
     public async Task<IResult> GenerateScores(IEnumerable<int> documentIds)
     {
+
+        BackgroundJob.Enqueue<IGenerateScoreService>(s => s.GenerateScore(documentIds));
+        
         var documents = context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId));
         
         var essays = context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId));
@@ -78,11 +83,14 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
 
                     var reviewedDocument = reviewTuple.Item1;
                     context.Documents.Add(reviewedDocument);
-
+                    
                     var outputEntities = OutputEntitiesFromAI(generatedScore, indexedContents);
 
                     var score = outputEntities.Item1;
                     score.EvaluatedEssayDocument = reviewedDocument;
+                    score.EvaluatedEssayDocumentId = reviewedDocument.EdaiDocumentId;
+                    score.Essay = essays.Single(e => e.EdaiDocumentId == document.EdaiDocumentId);
+                    score.EssayId = essayId;
 
                     context.Scores.Add(score);
                     
@@ -196,7 +204,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         var document = context.Documents.Find(score.EvaluatedEssayDocumentId);
         if (document == null) return Results.NotFound();
         var bytes = document.DocumentFile!;
-        return Results.File(bytes, "application/octet-stream", document.DocumentName);
+        return Results.File(bytes, "application/octet-stream", document.DocumentName + document.DocumentFileExtension);
     }
 
     private (Score, IEnumerable<FeedbackComment>) OutputEntitiesFromAI(GenerateScoreDTO generatedScore, IEnumerable<IndexedContent> indexedContents)
@@ -237,13 +245,20 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
 
     private FeedbackComment GetFeedbackComment(CommentDTO comment, IEnumerable<IndexedContent> contents, CommentType commentType)
     {
-        var indexedContents = contents.Where(c => c.Content == comment.RelatedText);
+        var text = string.Join("", contents.
+            OrderBy(c => c.ParagraphIndex).
+            ThenBy(c => c.RunIndex).
+            Select(c => c.Content));
+
+        var startIndex = text.IndexOf(comment.RelatedText);
+        var endIndex = startIndex + comment.RelatedText.Length;
+        
+        var indexedContents = contents.Where(c => c.FromCharInContent >= startIndex && c.ToCharInContent <= endIndex);
 
         try
         {
-            var indexedContent = indexedContents.Single();
             var baseComment = mapper.Map<BaseComment>(comment);
-            baseComment.RelatedText = indexedContent;
+            baseComment.RelatedTexts = indexedContents.ToList();
             return new FeedbackComment(baseComment, commentType);
         }
         catch (InvalidOperationException e)
@@ -320,51 +335,4 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
 
     }
 */
-
-    private void AssignRelatedText(IEnumerable<FeedbackComment> comments, IEnumerable<IndexedContent> indexedContent, int essayId)
-    {
-        try
-        {
-            foreach (var feedbackComment in comments)
-            {
-                var relatedContent = feedbackComment.RelatedText;
-                feedbackComment.RelatedText = indexedContent.Single(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
-                                                                         && i.RunIndex == relatedContent.RunIndex
-                                                                         && i.EssayId == essayId);
-            }
-
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            foreach (var feedbackComment in comments)
-            {
-                var relatedContent = feedbackComment.RelatedText;
-                var matchingElements = indexedContent.Count(i => i.ParagraphIndex == relatedContent?.ParagraphIndex
-                                                                 && i.RunIndex == relatedContent.RunIndex
-                                                                 && i.EssayId == essayId);
-                if (matchingElements == 0)
-                {
-                    Console.WriteLine($"No matcing elements for OpenAI related content - Paragraph: {relatedContent.ParagraphIndex}, Run: {relatedContent.RunIndex}");
-                }
-            }
-            
-            Console.WriteLine("Indexes in database");
-            foreach (var content in indexedContent)
-            {
-                var indexes = $"ParagraphIndex: {content.ParagraphIndex.ToString()}, RunIndex: {content.RunIndex.ToString()}";
-                Console.WriteLine(indexes);
-            }
-            
-            Console.WriteLine("Indexes from OpenAI");
-            foreach (var comment in comments)
-            {
-                var indexes = $"ParagraphIndex: {comment.RelatedText.ParagraphIndex.ToString()}, RunIndex: {comment.RelatedText.RunIndex.ToString()}";
-                Console.WriteLine(indexes);
-            }
-            
-            throw;
-        }
-        
-    }
 }

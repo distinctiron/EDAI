@@ -4,9 +4,7 @@ public class BaseComment
 {
     public int FeedbackCommentId { get; set; }
     
-    public int RelatedTextId { get; set; }
-    
-    public IndexedContent? RelatedText { get; set; } = null!;
+    public ICollection<IndexedContent>? RelatedTexts { get; set; } = new List<IndexedContent>();
     
     public string CommentFeedback { get; set; }
 }

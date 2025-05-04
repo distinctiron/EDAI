@@ -18,4 +18,12 @@ public class EdaiContext : DbContext
     public EdaiContext() { }
     
     public EdaiContext(DbContextOptions<EdaiContext> options) : base(options) { }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Optional: configure the join table explicitly if needed
+        modelBuilder.Entity<FeedbackComment>()
+            .HasMany(s => s.RelatedTexts)
+            .WithMany(c => c.FeedbackComments);
+    }
 }

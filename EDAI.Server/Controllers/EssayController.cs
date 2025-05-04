@@ -159,8 +159,8 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     {
         var essay = context.Essays.Include(e => e.IndexedEssay).SingleOrDefault( e => e.EssayId == id);
         if (essay == null) return Results.NotFound();
-        var indexedContent = essay.IndexedEssay.SingleOrDefault( idc => idc.IndexedContentId == feedbackComment.RelatedTextId);
-        if (indexedContent == null) return Results.NotFound();
+        //var indexedContents = essay.IndexedEssay.Where( idc => feedbackComment.RelatedText.Select( c => c.IndexedContentId).Contains() );
+        //if (!indexedContents.Any() || indexedContents is null) return Results.NotFound();
         context.FeedbackComments.Add(feedbackComment);
         context.SaveChanges();
         return Results.Ok(feedbackComment);
@@ -191,12 +191,12 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
             .ThenInclude( idc => idc.FeedbackComments)
             .SingleOrDefault( e => e.EssayId == id);
         if (essay == null) return Results.NotFound();
-        var feedbackComment = context.FeedbackComments.Include( fc => fc.RelatedText).SingleOrDefault( fc => fc.FeedbackCommentId == feedbackCommentId);
+        var feedbackComment = context.FeedbackComments.Include( fc => fc.RelatedTexts).SingleOrDefault( fc => fc.FeedbackCommentId == feedbackCommentId);
         if (feedbackComment == null) return Results.NotFound();
-        var relatedText = feedbackComment.RelatedText;
+        var relatedText = feedbackComment.RelatedTexts;
         if (relatedText == null) return Results.NotFound();
-        if (feedbackComment.RelatedText!.EssayId != id) return Results.NotFound();
-        relatedText.FeedbackComments!.Remove(feedbackComment);
+        if (feedbackComment.RelatedTexts!.Count == 0) return Results.NotFound();
+        //relatedText.FeedbackComments!.Remove(feedbackComment);
         context.FeedbackComments.Remove(feedbackComment);
         context.SaveChanges();
         return Results.Ok(feedbackCommentId);

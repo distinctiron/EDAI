@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingCanvas;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
@@ -15,6 +16,7 @@ using Comment = DocumentFormat.OpenXml.Wordprocessing.Comment;
 using CommentRangeEnd = DocumentFormat.OpenXml.Wordprocessing.CommentRangeEnd;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using RunProperties = DocumentFormat.OpenXml.Drawing.RunProperties;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace EDAI.Shared.Tools;
@@ -38,14 +40,28 @@ public class WordFileHandler : IDisposable
 
     private int _essayId;
 
+    private Dictionary<IndexedContent, Run> _dictionaryContent;
+
+    private IEnumerable<IndexedContent> _indexedContents;
+
     public WordFileHandler(Stream stream, int essayId)
     {
-        _answerDocumentStream = stream;
-        _reviewedDocumentStream = stream;
+        _answerDocumentStream = new MemoryStream();
+        stream.Position = 0;
+        stream.CopyTo(_answerDocumentStream);
+        _answerDocumentStream.Position = 0;
+        _reviewedDocumentStream = new MemoryStream();
+        stream.Position = 0;
+        stream.CopyTo(_reviewedDocumentStream);
+        _reviewedDocumentStream.Position = 0;
+        
         _essayId = essayId;
 
         _answerDocument = WordprocessingDocument.Open(_answerDocumentStream, false);
-        _reviewedDocument = WordprocessingDocument.Open(_reviewedDocumentStream, false);
+        _reviewedDocument = WordprocessingDocument.Open(_reviewedDocumentStream, true);
+        
+        _dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+        _indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, essayId);
     }
     
     public void Dispose()
@@ -62,7 +78,6 @@ public class WordFileHandler : IDisposable
             _isReviewedDisposed = true;
         }
         
-        _reviewedDocument.Dispose();
     }
     
     private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
@@ -83,7 +98,7 @@ public class WordFileHandler : IDisposable
                     ParagraphIndex = paragraphIndex,
                     RunIndex = runIndex,
                     Content = run.InnerText,
-                    FromCharInContent = ++charCount,
+                    FromCharInContent = charCount,
                     ToCharInContent = run.InnerText.Length + charCount
                 };
 
@@ -99,7 +114,7 @@ public class WordFileHandler : IDisposable
     public Dictionary<IndexedContent, Run> IndexDictionaryContent(Document document, int essayId)
     {
 
-        var retrunvalue = new Dictionary<IndexedContent, Run>(); 
+        var returnvalue = new Dictionary<IndexedContent, Run>(); 
         
         var charCount = 0;
         
@@ -121,15 +136,15 @@ public class WordFileHandler : IDisposable
                     EssayId = essayId
                 };
                     
-                retrunvalue.Add(content,run);
+                returnvalue.Add(content,run);
 
-                charCount += run.InnerText.Length + 1;
+                charCount += run.InnerText.Length;
                 runIndex++;
             }
             paragraphIndex++;
         }
 
-        return retrunvalue;
+        return returnvalue;
     }
 
     public string GetDocumentText()
@@ -139,48 +154,53 @@ public class WordFileHandler : IDisposable
 
     public async Task<(EdaiDocument, IEnumerable<IndexedContent>)> CreateReviewDocument(EdaiDocument essayAnswer, GenerateScoreDTO generatedScore)
     {
-
-        var runs = _reviewedDocument.MainDocumentPart.Document.Descendants<Run>();
         
         EnsureCommentsPartExists();
 
         var aiComments = CommentMapper.assignCharPositions(GetDocumentText() ,generatedScore.ArgumentationComments.Concat(generatedScore.EloquenceComments)
             .Concat(generatedScore.GrammarComments));
         
-        
+        InsertComments(aiComments);
         
         InsertFeedback(generatedScore.OverallStructure, System.Drawing.Color.Chocolate);
         InsertFeedback(generatedScore.AssignmentAnswer, System.Drawing.Color.Firebrick);
+        
+        var reviewedName = string.Concat(essayAnswer.DocumentName,"Reviewed");
 
-        InsertComments(aiComments);
+        var validator = new OpenXmlValidator();
 
-        var indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
-
-        var indexOfNameEnd = essayAnswer.DocumentName.IndexOf('.', StringComparison.Ordinal);
-        var reviewedName = essayAnswer.DocumentName.Insert(indexOfNameEnd, "Reviewed");
+        foreach (var error in validator.Validate(_reviewedDocument))
+        {
+            Console.WriteLine($"Error Id: {error.Id}, Error Type: {error.ErrorType}, Description: {error.Description}");
+        }
+        
+        _reviewedDocument.MainDocumentPart.Document.Save();
+        _reviewedDocument.MainDocumentPart.WordprocessingCommentsPart.Comments.Save();
+        _reviewedDocument.Dispose();
         
         return (new EdaiDocument
         {
             DocumentFile = getArrayFromStream(_reviewedDocumentStream),
+            DocumentFileExtension = ".docx",
             DocumentName = reviewedName
-        }, indexedContents);
+        }, _indexedContents);
     }
 
     private void InsertComments(IEnumerable<CommentIndexedDTO> aiComments)
     {
-        var dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
-        
         foreach (var comment in aiComments)
         {
             var startChar = comment.FromChar;
             var endChar = comment.ToChar;
             
             var startContent =
-                dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
-            var startRun = dictionaryContent[startContent];
+                _dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
+            var startRun = _dictionaryContent[startContent];
             
-            var endContent = dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
-            var endRun = dictionaryContent[endContent];
+            var endContent = _dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
+            var endRun = _dictionaryContent[endContent];
+
+            var areStartEndIdentical = startRun == endRun;
                     
             if (startContent.FromCharInContent == startChar)
             {
@@ -195,7 +215,14 @@ public class WordFileHandler : IDisposable
                 else
                 {
                     var splitEndRuns = SplitRun(endRun, endChar);
-                    AddComment(startRun, splitEndRuns.Item1, comment.CommentFeedback);
+                    if (areStartEndIdentical)
+                    {
+                        AddComment(splitEndRuns.Item1, splitEndRuns.Item1, comment.CommentFeedback);
+                    }
+                    else
+                    {
+                        AddComment(startRun, splitEndRuns.Item1, comment.CommentFeedback);   
+                    }
                 }
             }
             else
@@ -213,15 +240,33 @@ public class WordFileHandler : IDisposable
                 }
                 else
                 {
-                    var endRunSplit = SplitRun(endRun, endChar);
-                    AddComment(newStartRun, endRunSplit.Item1, comment.CommentFeedback);
+                    if (areStartEndIdentical)
+                    {
+                        var endRunSplit = SplitRun(splitStartRuns.Item2, endChar);
+                        AddComment(endRunSplit.Item1, endRunSplit.Item1, comment.CommentFeedback);
+                    }
+                    else
+                    {
+                        var endRunSplit = SplitRun(endRun, endChar);
+                        AddComment(newStartRun, endRunSplit.Item1, comment.CommentFeedback);   
+                    }
                 }
             }
+            
+            UpdateDocumentState();
+            
         }
+    }
+
+    private void UpdateDocumentState()
+    {
+        _indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
+        _dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
     }
 
     private byte[] getArrayFromStream(Stream stream)
     {
+        stream.Position = 0;
         using (MemoryStream memoryStream = new MemoryStream())
         {
             stream.CopyTo(memoryStream);
@@ -232,22 +277,22 @@ public class WordFileHandler : IDisposable
     public void AddComment(Run startRun, Run endRun, string comment)
     {
         var id = getNextCommentId();
-        
         CreateComment(comment, id);
         
-        startRun.InsertBefore(new CommentRangeStart()
+        
+        startRun.Parent?.InsertBefore(new CommentRangeStart()
         {
             Id = id
-        }, startRun.Elements<Text>().First());
+        }, startRun);
 
         var commentEnd = new CommentRangeEnd()
         {
             Id = id
         };
         
-        endRun.InsertAfter(commentEnd, endRun.Elements<Text>().Last());
+        endRun?.Parent.InsertAfter(commentEnd, endRun);
         
-        endRun.InsertAfter(new Run(new CommentReference()
+        endRun?.Parent.InsertAfter(new Run(new CommentReference()
         {
             Id = id
         }), commentEnd);
@@ -278,32 +323,73 @@ public class WordFileHandler : IDisposable
             throw new ArgumentException($"Invalid arguments: originalRun = {originalRun}, splitIndex = {splitIndex}");
         
         var text = originalRun.InnerText;
-        
-        string firstRunContent = text.Substring(0, splitIndex);
-        string secondRunContent = text.Substring(splitIndex);
+        var startIndex = GetDocumentText().IndexOf(text, StringComparison.Ordinal);
+        var runSplitIndex = splitIndex - startIndex;
 
-        var firstRun = new Run(new Text(firstRunContent));
-        var secondRun = new Run(new Text(secondRunContent));
-
-        if (originalRun.RunProperties is not null)
+        try
         {
-            firstRun.RunProperties = originalRun.RunProperties;
-            secondRun.RunProperties = originalRun.RunProperties;
+            string firstRunContent = text.Substring(0, runSplitIndex);
+            string secondRunContent = text.Substring(runSplitIndex);
+            var firstRun = new Run(new Text(firstRunContent));
+            var secondRun = new Run(new Text(secondRunContent));
+
+            if (originalRun.RunProperties is not null)
+            {
+                firstRun.RunProperties = CloneRunProperties(originalRun);
+                secondRun.RunProperties = CloneRunProperties(originalRun);
+            }
+
+            var runParent = GetRunParent(originalRun);
+
+            if (runParent is null)
+            {
+                throw new NullReferenceException($"Run with text: \"{originalRun.InnerText}\" does not have parent");
+            }
+        
+            runParent.InsertBefore(firstRun, originalRun);
+            runParent.InsertBefore(secondRun, originalRun);
+            Console.WriteLine($"Run containing text \"{originalRun.InnerText}\" has been split");
+            originalRun.Remove();
+            UpdateDocumentState();
+
+            return (firstRun, secondRun);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            //throw;
         }
 
-        var runParent = originalRun.Parent;
+        return (new Run(), new Run());
 
-        if (runParent is null)
+    }
+
+    private DocumentFormat.OpenXml.Wordprocessing.RunProperties? CloneRunProperties(Run run)
+    {
+        return run?.RunProperties is not null
+            ? (DocumentFormat.OpenXml.Wordprocessing.RunProperties)run.RunProperties.CloneNode(true)
+            : null;
+    }
+
+    private Paragraph GetRunParent(Run run)
+    {
+        var parent = run.Parent as Paragraph;
+
+        if (parent is null)
         {
-            throw new NullReferenceException($"Run with text: \"{originalRun.InnerText}\" does not have parent");
+            try
+            {
+                parent = _reviewedDocument.MainDocumentPart.Document.Descendants<Run>()
+                    .Single( r => r.InnerText == run.InnerText).Parent as Paragraph;
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine($"Cannot find run with innertext \"{run.InnerText}\"");
+                throw;
+            }
         }
-        
-        runParent.InsertBefore(firstRun, originalRun);
-        runParent.InsertBefore(secondRun, originalRun);
-        originalRun.Remove();
 
-        return (firstRun, secondRun);
-
+        return parent;
     }
 
     private void EnsureCommentsPartExists()
@@ -394,47 +480,12 @@ public class WordFileHandler : IDisposable
                 }
             }
 
-            InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
+            //InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
 
         }
         
     }
 
-    private void InsertComments(WordprocessingDocument wordDoc, WordprocessingCommentsPart commentsPart,
-        IEnumerable<FeedbackComment> feedbackComments, int currentHighestCommentId)
-    {
-        foreach (var feedbackComment in feedbackComments)
-        {
-            var commentContent = new Paragraph(new Run(new Text(feedbackComment.CommentFeedback)));
-
-            var comment = new Comment()
-            {
-                Id = currentHighestCommentId.ToString(),
-                Author = "EDAI",
-                Initials = "EDAI",
-                Date = DateTime.Now
-            };
-
-            comment.AppendChild(commentContent);
-            commentsPart.Comments.AppendChild(comment);
-            
-            commentsPart.Comments.Save();
-
-            var paragraph = wordDoc.MainDocumentPart.Document.Descendants<Paragraph>()
-                .ElementAt(feedbackComment.RelatedText.ParagraphIndex);
-            var run = paragraph.Descendants<Run>().ElementAt(feedbackComment.RelatedText.RunIndex);
-
-            run.InsertBefore(new CommentRangeStart() {Id = currentHighestCommentId.ToString() }, run.GetFirstChild<Text>());
-
-            var commentEnd = run.InsertAfter(new CommentRangeEnd() {Id = currentHighestCommentId.ToString() }, run.Elements<Text>().Last());
-
-            run.InsertAfter(new Run(new CommentReference() { Id = currentHighestCommentId.ToString() }), commentEnd);
-
-            currentHighestCommentId++;
-        }
-
-        //return currentHighestCommentId;
-    }
 
     private void InsertFeedback(string feedback, System.Drawing.Color feedbackColor)
     {
@@ -446,7 +497,9 @@ public class WordFileHandler : IDisposable
             root.Save(stylesPart);
         }
 
-        var style = GetNewStyle(feedbackColor);
+        var styleId = Guid.NewGuid().ToString();
+
+        var style = GetNewStyle(feedbackColor, styleId);
 
         if (stylesPart.Styles is not null)
         {
@@ -481,19 +534,30 @@ public class WordFileHandler : IDisposable
             paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId();
         }
 
-        paragraph.ParagraphProperties.ParagraphStyleId.Val = "FeedbackStyle";
-                
-        body.AppendChild(paragraph);
+        paragraph.ParagraphProperties.ParagraphStyleId.Val = styleId;
+        
+        var sectPr = body.Elements<SectionProperties>().FirstOrDefault();
+
+        if (sectPr != null)
+        {
+            body.InsertBefore(paragraph, sectPr);
+        }
+        else
+        {
+            body.AppendChild(paragraph);
+        }
+        
+        UpdateDocumentState();
 
     }
     
 
-    private Style GetNewStyle(System.Drawing.Color styleColor)
+    private Style GetNewStyle(System.Drawing.Color styleColor, string id)
     {
         var style = new Style()
             {
                 Type = StyleValues.Paragraph,
-                StyleId = "FeedbackStyle",
+                StyleId = id,
                 CustomStyle = true,
                 Default = false
             };
@@ -506,29 +570,38 @@ public class WordFileHandler : IDisposable
             PrimaryStyle primarystyle1 = new PrimaryStyle() { Val = OnOffOnlyValues.On };
             StyleHidden stylehidden1 = new StyleHidden() { Val = OnOffOnlyValues.Off };
             SemiHidden semihidden1 = new SemiHidden() { Val = OnOffOnlyValues.Off };
-            StyleName styleName1 = new StyleName() { Val = "Feedback" };
+            StyleName styleName1 = new StyleName() { Val = id };
             NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
             UIPriority uipriority1 = new UIPriority() { Val = 1 };
             UnhideWhenUsed unhidewhenused1 = new UnhideWhenUsed() { Val = OnOffOnlyValues.On };
                 
-            style.Append(aliases1);
-            style.Append(autoredefine1);
-            style.Append(basedon1);
-            style.Append(linkedStyle1);
-            style.Append(locked1);
-            style.Append(primarystyle1);
-            style.Append(stylehidden1);
-            style.Append(semihidden1);
             style.Append(styleName1);
+            style.Append(basedon1);
             style.Append(nextParagraphStyle1);
+            style.Append(linkedStyle1);
             style.Append(uipriority1);
-            style.Append(unhidewhenused1);
+            style.Append(primarystyle1);
+            //style.Append(aliases1);
+            //style.Append(autoredefine1);
+            style.Append(locked1);
+            //style.Append(stylehidden1);
+            //style.Append(semihidden1);
+            //style.Append(unhidewhenused1);
 
             var styleRunProperties = new StyleRunProperties();
+            var runFonts = new RunFonts()
+            {
+                Ascii = "Times New Roman",
+                HighAnsi = "Times New Roman",
+                EastAsia = "Times New Roman",
+                ComplexScript = "Times New Roman"
+            };
             var italic = new Italic();
             var color = new Color() { Val = ColorToHex(styleColor) };
-            styleRunProperties.Append(color);
+            styleRunProperties.Append(runFonts);
             styleRunProperties.Append(italic);
+            styleRunProperties.Append(color);
+            
 
             style.Append(styleRunProperties);
 
