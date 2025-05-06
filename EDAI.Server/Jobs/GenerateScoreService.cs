@@ -1,17 +1,19 @@
 using AutoMapper;
 using EDAI.Server.Data;
+using EDAI.Server.Hubs;
 using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EDAI.Server.Jobs;
 
-public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper) : IGenerateScoreService
+public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper, IHubContext<MessageHub> messageHub) : IGenerateScoreService
 {
-    public async Task GenerateScore(IEnumerable<int> documentIds)
+    public async Task GenerateScore(IEnumerable<int> documentIds, string connectionId)
     {
         var documents = context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId));
         
@@ -66,11 +68,14 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
                     context.FeedbackComments.AddRange(feedbackComments);
                     
                 }
+
+                context.SaveChanges();
+
+                //await messageHub.Clients.Client(connectionId).SendAsync("ScoreGenerated",essayId.ToString());
+                await messageHub.Clients.All.SendAsync("ScoreGenerated", essayId.ToString());
             }
             
         }
-        
-        context.SaveChanges();
     }
     
     private (Score, IEnumerable<FeedbackComment>) OutputEntitiesFromAI(GenerateScoreDTO generatedScore, IEnumerable<IndexedContent> indexedContents)

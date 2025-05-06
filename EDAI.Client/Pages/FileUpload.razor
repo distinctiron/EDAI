@@ -7,9 +7,13 @@
 @using EDAI.Shared.Models
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Entities
+@using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
 @inject IDialogService DialogService
 @using MudBlazor.Interfaces
+@inject NavigationManager Navigation
+
 
 <PageTitle>File Upload</PageTitle>
 
@@ -55,6 +59,26 @@
                             <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
                         </EditTemplate>
                     </PropertyColumn>
+                    <TemplateColumn>
+                        <EditTemplate>
+                            @if (context.Item.Status == EssayStatus.AwaitingUpload)
+                            {
+                                <MudChip T="string">Awaiting Upload</MudChip>
+                            }
+                            else if (context.Item.Status == EssayStatus.Processing)
+                            {
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+                            }
+                            else
+                            {
+                                <MudButton Size="Size.Large" Variant="Variant.Filled" Color="Color.Primary">
+                                    Reviewed Essay
+                                </MudButton>
+                                
+                            }
+                            
+                        </EditTemplate>
+                    </TemplateColumn>
                 </Columns>
             </MudDataGrid>
         </MudItem>
@@ -90,6 +114,10 @@
 
 
 @code {
+    private HubConnection? _hubConnection;
+
+    private string? _connectionString;
+    
     private bool _validStudents = true;
 
     private bool _filesUploadedSuccesfully = false;
@@ -148,15 +176,20 @@
         _validStudents = true;
 
         var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essays);
-        //var content = await essayResponse.Content.ReadAsStringAsync();
-        //Console.WriteLine($"Response Content: {content}");
         
         if (essayResponse.IsSuccessStatusCode)
         {
             _errorInFilesUploaded = false;
             _filesUploadedSuccesfully = true;
-            var ids = await essayResponse.Content.ReadFromJsonAsync<List<int>>();
-            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", ids);
+            var essays = await essayResponse.Content.ReadFromJsonAsync<IEnumerable<EssayFileDTO>>();
+            UpdateEssays(essays);
+            var documentIds = essays.Select(e => e.Document.EdaiDocumentId);
+            var request = new GenerateScoreRequestDTO
+                { 
+                    DocumentIds = documentIds,
+                    ConnectionId = _connectionString
+                };
+            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", request);
             Console.WriteLine(scoreResponse.StatusCode);
         }
         else
@@ -165,6 +198,16 @@
             _errorInFilesUploaded = true;
         }
 
+    }
+
+    private async Task UpdateEssays(IEnumerable<EssayFileDTO> essays)
+    {
+        foreach (var _essay in _essays)
+        {
+            _essay.EssayId = essays.Single(e => e.AssignmentId == _essay.AssignmentId &&
+                                                e.Student.StudentId == _essay.Student.StudentId).EssayId;
+            _essay.Status = EssayStatus.Processing;
+        }
     }
 
     private async Task AssignStudentIds()
@@ -201,6 +244,41 @@
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
 
         _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+            .Build();
+
+        _hubConnection.On<string>("ScoreGenerated",HandleReviewCompletion);
+
+        await _hubConnection.StartAsync();
+        _connectionString = _hubConnection.ConnectionId;
+        
+        Console.WriteLine($"SignalR state is {_hubConnection.State} with connectionId {_connectionString}");
+    }
+
+    private void HandleReviewCompletion(string essayId)
+    {
+        int id;
+        var succes = int.TryParse(essayId, out id);
+
+        if (!succes)
+        {
+            throw new InvalidCastException($"Id candidate {essayId} could not be converted to integer");
+        }
+
+        try
+        {
+            _essays.Single(e => e.EssayId == id).Status = EssayStatus.Reviewed;
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     private async Task OpenDialogAsync()

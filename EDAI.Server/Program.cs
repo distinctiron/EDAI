@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using EDAI.Server.Data;
 using EDAI.Server.Hubs;
+using EDAI.Server.Jobs;
 using EDAI.Services;
 using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
@@ -42,7 +43,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: "MyAllowSpecificOrigins",
         policy =>
         {
-            policy.WithOrigins("localhost:44388");
+            //policy.WithOrigins("localhost:44388");
+            policy.AllowAnyOrigin().AllowAnyHeader();
+                //.AllowAnyMethod().AllowCredentials();
+
             policy.WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             policy.AllowCredentials();
         });
@@ -52,6 +56,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddTransient<IWordFileHandlerFactory, WordFileHandlerFactory>();
 builder.Services.AddScoped<IOpenAiService, OpenAiService>();
+builder.Services.AddScoped<IGenerateScoreService, GenerateScoreService>();
 builder.Services.AddControllersWithViews();
     //.AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
 builder.Services.Configure<JsonOptions>(options => options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
@@ -68,6 +73,7 @@ builder.Services.AddResponseCompression(opts =>
 });
 
 builder.Services.AddHangfire(configuration => configuration.UseMemoryStorage());
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 

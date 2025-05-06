@@ -55,18 +55,14 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         }
         context.Essays.AddRange(entities);
         context.SaveChanges();
-        
-        
-        var ids = entities.Select(e => e.EssayId).ToList();
-        /*
-        var json = JsonSerializer.Serialize(ids, new JsonSerializerOptions
-        {
-            ReferenceHandler = null, // Explicitly turn off ReferenceHandler
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-        return Content(json,"application/json");*/
 
-        return Ok(ids);
+        foreach (var essay in essays)
+        {
+            essay.EssayId = entities.Single(e => e.AssignmentId == essay.AssignmentId && 
+                                                 e.StudentId == essay.Student.StudentId).EssayId;
+        }
+
+        return Ok(essays);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteEssay")]
