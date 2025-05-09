@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.IO.Compression;
+using AutoMapper;
 using EDAI.Server.Data;
 using EDAI.Server.Jobs;
 using EDAI.Services.Interfaces;
@@ -101,11 +102,42 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
     public IResult DownloadFile(int id)
     {
-        var score = context.Scores.Find(id);
+        var score = context.Scores.Where(s => s.EssayId == id)
+            .OrderByDescending(s => s.ScoreId)
+            .First();
         if (score == null) return Results.NotFound();
         var document = context.Documents.Find(score.EvaluatedEssayDocumentId);
         if (document == null) return Results.NotFound();
         var bytes = document.DocumentFile!;
         return Results.File(bytes, "application/octet-stream", document.DocumentName + document.DocumentFileExtension);
+    }
+
+    [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
+    public IResult DownloadMultipleFiles([FromQuery] List<int> ids)
+    {
+        var scores = context.Scores.Where(s => ids.Contains(s.EssayId))
+            .GroupBy(s => s.EssayId)
+            .Select( g => g.OrderByDescending( s => s.ScoreId).First())
+            .Select( s=> s.EvaluatedEssayDocumentId);
+        
+        var documents = context.Documents.Where(d => scores.Contains(d.EdaiDocumentId));
+
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen:true))
+        {
+            foreach (var document in documents)
+            {
+                var entry = archive.CreateEntry(document.DocumentName + document.DocumentFileExtension,
+                    CompressionLevel.Fastest);
+                using var entryStream = entry.Open();
+                entryStream.Write(document.DocumentFile, 0, document.DocumentFile.Length);
+                
+            }
+        }
+
+        zipStream.Position = 0;
+        
+        return Results.File(zipStream.ToArray(),"application/zip", "reviewedDocuments.zip");
+
     }
 }

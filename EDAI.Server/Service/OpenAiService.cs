@@ -209,6 +209,7 @@ public class OpenAiService : IOpenAiService
 
     public async Task<GenerateScoreDTO> AssessEssayAsync()
     {
+        /*
         Console.WriteLine($"{DateTime.Now.ToString(CultureInfo.CurrentCulture)}: Starting to Asses Argumentation");
         var argumentationArea = await AssessArea(CommentType.Logic);
         Console.WriteLine($"{DateTime.Now.ToString(CultureInfo.CurrentCulture)}: Received Argumentation. Starting to Asses Eloquence");
@@ -242,7 +243,8 @@ public class OpenAiService : IOpenAiService
                            + structureArea.Score.Score + answerArea.Score.Score) * 0.2
 
         };
-        /*
+        */
+        
         var testFilePath = Path.Combine(AppContext.BaseDirectory, "TestData", "Response", "poorResponse.json");
         var json = File.ReadAllText(testFilePath);
         var opts = new JsonSerializerOptions
@@ -250,7 +252,7 @@ public class OpenAiService : IOpenAiService
             PropertyNameCaseInsensitive = true
         };
         var score = JsonSerializer.Deserialize<GenerateScoreDTO>(json, opts);
-*/
+
         return score;
         
     }

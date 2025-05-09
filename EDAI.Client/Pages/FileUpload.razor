@@ -1,18 +1,16 @@
 @page "/fileupload"
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using DocumentFormat.OpenXml.InkML
 @using EDAI.Client.Components
 @using EDAI.Shared.Exceptions
-@using EDAI.Shared.Models
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Entities
 @using EDAI.Shared.Models.Enums
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
 @inject IDialogService DialogService
-@using MudBlazor.Interfaces
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 
 <PageTitle>File Upload</PageTitle>
@@ -50,8 +48,15 @@
     
     @if (_essays.Any())
     {
+        @if (_essays.Any(e => e.Status == EssayStatus.Reviewed))
+        {
+            <MudItem xs="3" Class="justify-end">
+                <MudSwitch @bind-Value="_selectFilesForDownload" Label="Select files for download" Color="Color.Primary"/>
+            </MudItem>
+        }
+        
         <MudItem xs = "12">
-            <MudDataGrid MultiSelection="true" T="EssayFileDTO" Items="_essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false">
+            <MudDataGrid MultiSelection="true" T="EssayFileDTO" Items="_filteredEssays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
                 <Columns>
                     <PropertyColumn Property="x => x.Document.DocumentName" Title="File Name" Editable="false"/>
                     <PropertyColumn Property="x => x.Student.FullName" Title="Student" Editable="true">
@@ -59,7 +64,7 @@
                             <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
                         </EditTemplate>
                     </PropertyColumn>
-                    <TemplateColumn>
+                    <TemplateColumn Title="Status">
                         <EditTemplate>
                             @if (context.Item.Status == EssayStatus.AwaitingUpload)
                             {
@@ -71,24 +76,26 @@
                             }
                             else
                             {
-                                <MudButton Size="Size.Large" Variant="Variant.Filled" Color="Color.Primary">
-                                    Reviewed Essay
-                                </MudButton>
-                                
+                                <MudChip T="string" Color="Color.Success">Reviewed</MudChip>
                             }
-                            
                         </EditTemplate>
                     </TemplateColumn>
+                    @if (_selectFilesForDownload)
+                    {
+                        <SelectColumn T="EssayFileDTO" />  
+                    }
                 </Columns>
             </MudDataGrid>
         </MudItem>
         
-        
-        <MudItem xs = "2">
-            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
-                Review Files
-            </MudButton>
-        </MudItem>
+        @if (!_selectFilesForDownload)
+        {
+            <MudItem xs = "2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
+                    Review Files
+                </MudButton>
+            </MudItem>
+        }
         
         @if (!_validStudents)
         {
@@ -108,6 +115,12 @@
                 <MudChip  T="string" Color="Color.Error" Variant="Variant.Text">Error in File Upload</MudChip>
             </MudItem>
         }
+        @if (_selectFilesForDownload)
+        {
+            <MudItem xs="2">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!_selectedItems.Any())" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFiles">Download Selection</MudButton>
+            </MudItem>
+        }
     }
 </MudGrid>
 
@@ -115,6 +128,10 @@
 
 @code {
     private HubConnection? _hubConnection;
+
+    private MudDataGrid<EssayFileDTO>? _dataGrid;
+
+    private HashSet<EssayFileDTO> _selectedItems = new();
 
     private string? _connectionString;
     
@@ -130,6 +147,8 @@
 
     private bool _assignmentCreated = false;
 
+    private bool _selectFilesForDownload = false;
+
     private IEnumerable<AssignmentDTO> _assignments = new List<AssignmentDTO>();
 
     private string _assignmentClass;
@@ -138,10 +157,12 @@
 
     private IList<EssayFileDTO> _essays = new List<EssayFileDTO>();
 
+    private IEnumerable<EssayFileDTO> _filteredEssays;
+
     private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
         using var memoryStream = new MemoryStream();
-        
+
         foreach (var file in files)
         {
             using var stream = file.OpenReadStream(_maxFileSize);
@@ -159,6 +180,47 @@
                 Student = new StudentDTO()
             });
         }
+    }
+
+    private async Task DownloadFiles()
+    {
+        var ids = _selectedItems.Select(e => e.EssayId);
+        
+        if (ids.Count() > 1)
+        {
+            var queryString = string.Join("&", ids.Select(id => $"ids={id}"));
+            var url = $"Score/bulkdownload?{queryString}";
+
+            var response = await _Client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "reviewed_documents.zip";
+            var mimeType = response.Content.Headers.ContentType?.ToString() ?? "application/zip";
+            var base64 = Convert.ToBase64String(content);
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, mimeType, base64);
+        }
+        else
+        {
+            var id = ids.Single();
+            var response = await _Client.GetAsync($"Score/{id}/downloadScoredDocumentFile");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"reviewed_{id}.docx";
+            var mime = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+            var base64 = Convert.ToBase64String(content);
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, mime, base64);
+            
+        }
+    }
+    
+    private void OnSelectedItemsChanged(HashSet<EssayFileDTO> selectedItems)
+    {
+        _selectedItems = selectedItems;
+        StateHasChanged(); 
     }
 
     private async Task SendFilesForReview()
@@ -241,6 +303,8 @@
             PropertyNameCaseInsensitive = true
         };
 
+        _filteredEssays = _selectFilesForDownload ? _essays.Where(e => e.Status == EssayStatus.Reviewed) : _essays;
+
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
 
         _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
@@ -272,6 +336,7 @@
         try
         {
             _essays.Single(e => e.EssayId == id).Status = EssayStatus.Reviewed;
+            _filesUploadedSuccesfully = false;
             StateHasChanged();
         }
         catch (Exception e)
