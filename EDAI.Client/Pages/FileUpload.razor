@@ -27,7 +27,7 @@
         </MudSelect>        
     </MudItem>
     <MudItem xs="2">
-        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create Assignment</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create</MudButton>
     </MudItem>
     @if (_assignmentCreated)
     {
@@ -40,7 +40,7 @@
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
                            Disabled="@(_assignment == null)">
-                    Upload Files
+                    Upload
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
@@ -48,7 +48,7 @@
     
     @if (_essays.Any())
     {
-        @if (_essays.Any(e => e.Status == EssayStatus.Reviewed))
+        @if (_essays.Any(e => e.Item1.Status == EssayStatus.Reviewed))
         {
             <MudItem xs="3" Class="justify-end">
                 <MudSwitch @bind-Value="_selectFilesForDownload" Label="Select files for download" Color="Color.Primary"/>
@@ -56,21 +56,21 @@
         }
         
         <MudItem xs = "12">
-            <MudDataGrid MultiSelection="true" T="EssayFileDTO" Items="_filteredEssays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
+            <MudDataGrid MultiSelection="true" T="(EssayFileDTO,IBrowserFile)" Items="_selectFilesForDownload ? _essays.Where(e => e.Item1.Status == EssayStatus.Reviewed) : _essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
                 <Columns>
-                    <PropertyColumn Property="x => x.Document.DocumentName" Title="File Name" Editable="false"/>
-                    <PropertyColumn Property="x => x.Student.FullName" Title="Student" Editable="true">
+                    <PropertyColumn Property="x => x.Item2.Name" Title="File Name" Editable="false"/>
+                    <PropertyColumn Property="x => x.Item1.Student.FullName" Title="Student" Editable="true">
                         <EditTemplate>
-                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
+                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
                         </EditTemplate>
                     </PropertyColumn>
                     <TemplateColumn Title="Status">
                         <EditTemplate>
-                            @if (context.Item.Status == EssayStatus.AwaitingUpload)
+                            @if (context.Item.Item1.Status == EssayStatus.AwaitingUpload)
                             {
                                 <MudChip T="string">Awaiting Upload</MudChip>
                             }
-                            else if (context.Item.Status == EssayStatus.Processing)
+                            else if (context.Item.Item1.Status == EssayStatus.Processing)
                             {
                                 <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
                             }
@@ -82,7 +82,7 @@
                     </TemplateColumn>
                     @if (_selectFilesForDownload)
                     {
-                        <SelectColumn T="EssayFileDTO" />  
+                        <SelectColumn T="(EssayFileDTO,IBrowserFile)" />  
                     }
                 </Columns>
             </MudDataGrid>
@@ -92,7 +92,7 @@
         {
             <MudItem xs = "2">
                 <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
-                    Review Files
+                    Review
                 </MudButton>
             </MudItem>
         }
@@ -118,7 +118,7 @@
         @if (_selectFilesForDownload)
         {
             <MudItem xs="2">
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!_selectedItems.Any())" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFiles">Download Selection</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!_selectedItems.Any())" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFiles">Download</MudButton>
             </MudItem>
         }
     }
@@ -129,9 +129,9 @@
 @code {
     private HubConnection? _hubConnection;
 
-    private MudDataGrid<EssayFileDTO>? _dataGrid;
+    private MudDataGrid<(EssayFileDTO,IBrowserFile)>? _dataGrid;
 
-    private HashSet<EssayFileDTO> _selectedItems = new();
+    private HashSet<(EssayFileDTO,IBrowserFile)> _selectedItems = new();
 
     private string? _connectionString;
     
@@ -155,36 +155,29 @@
 
     private IEnumerable<StudentDTO> _students;
 
-    private IList<EssayFileDTO> _essays = new List<EssayFileDTO>();
-
-    private IEnumerable<EssayFileDTO> _filteredEssays;
+    private IList<(EssayFileDTO,IBrowserFile)> _essays = new List<(EssayFileDTO,IBrowserFile)>();
 
     private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
-        using var memoryStream = new MemoryStream();
-
         foreach (var file in files)
         {
-            using var stream = file.OpenReadStream(_maxFileSize);
-            await stream.CopyToAsync(memoryStream);
-
-            _essays.Add(new EssayFileDTO
+            _essays.Add((new EssayFileDTO
             {
                 AssignmentId = _assignment.AssignmentId,
-                Document = new EdaiDocument
+                /*Document = new EdaiDocument
                 {
                     DocumentFile = memoryStream.ToArray(),
                     DocumentName = Path.GetFileNameWithoutExtension(file.Name),
                     DocumentFileExtension = Path.GetExtension(file.Name)
-                },
+                },*/
                 Student = new StudentDTO()
-            });
+            },file));
         }
     }
 
     private async Task DownloadFiles()
     {
-        var ids = _selectedItems.Select(e => e.EssayId);
+        var ids = _selectedItems.Select(e => e.Item1.EssayId);
         
         if (ids.Count() > 1)
         {
@@ -217,7 +210,7 @@
         }
     }
     
-    private void OnSelectedItemsChanged(HashSet<EssayFileDTO> selectedItems)
+    private void OnSelectedItemsChanged(HashSet<(EssayFileDTO,IBrowserFile)> selectedItems)
     {
         _selectedItems = selectedItems;
         StateHasChanged(); 
@@ -237,56 +230,63 @@
         
         _validStudents = true;
 
-        var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essays);
-        
-        if (essayResponse.IsSuccessStatusCode)
-        {
-            _errorInFilesUploaded = false;
-            _filesUploadedSuccesfully = true;
-            var essays = await essayResponse.Content.ReadFromJsonAsync<IEnumerable<EssayFileDTO>>();
-            UpdateEssays(essays);
-            var documentIds = essays.Select(e => e.Document.EdaiDocumentId);
-            var request = new GenerateScoreRequestDTO
-                { 
-                    DocumentIds = documentIds,
-                    ConnectionId = _connectionString
-                };
-            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", request);
-            Console.WriteLine(scoreResponse.StatusCode);
-        }
-        else
-        {
-            _filesUploadedSuccesfully = false;
-            _errorInFilesUploaded = true;
-        }
-
-    }
-
-    private async Task UpdateEssays(IEnumerable<EssayFileDTO> essays)
-    {
         foreach (var _essay in _essays)
         {
-            _essay.EssayId = essays.Single(e => e.AssignmentId == _essay.AssignmentId &&
-                                                e.Student.StudentId == _essay.Student.StudentId).EssayId;
-            _essay.Status = EssayStatus.Processing;
+            var content = new MultipartFormDataContent();
+            var fileContent = _essay.Item2.OpenReadStream();
+            
+            content.Add(new StreamContent(fileContent),"file",_essay.Item2.Name);
+
+            var documentResponse = await _Client.PostAsync("Document/uploadFiles", content);
+            var documentId = await documentResponse.Content.ReadFromJsonAsync<int>();
+
+            _essay.Item1.EdaiDocumentId = documentId;
+            var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essay.Item1);
+            
+            if (essayResponse.IsSuccessStatusCode)
+            {
+                _errorInFilesUploaded = false;
+                _filesUploadedSuccesfully = true;
+                var essay = await essayResponse.Content.ReadFromJsonAsync<EssayFileDTO>();
+                _essay.Item1.EssayId = essay.EssayId;
+                _essay.Item1.Status = EssayStatus.Processing;
+            }
+            else
+            {
+                _errorInFilesUploaded = true;
+                _filesUploadedSuccesfully = false;
+                break;
+            }
         }
+
+        if (_filesUploadedSuccesfully && !_errorInFilesUploaded)
+        {
+            var documentIds = _essays.Select(e => e.Item1.EdaiDocumentId).OfType<int>();
+            var request = new GenerateScoreRequestDTO
+            { 
+                DocumentIds = documentIds,
+                ConnectionId = _connectionString
+            };
+            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", request);
+        }
+
     }
 
     private async Task AssignStudentIds()
     {
         foreach (var esssay in _essays)
         {
-            var studentMatches = _students.Where(s => s.FullName == esssay.Student.FullName);
+            var studentMatches = _students.Where(s => s.FullName == esssay.Item1.Student.FullName);
             
             if (studentMatches.Count() == 1)
             {
                 var matchedStudent = studentMatches.Single();
 
-                esssay.Student.StudentId = matchedStudent.StudentId;
-                esssay.Student.FirstName = matchedStudent.FirstName;
-                esssay.Student.LastName = matchedStudent.LastName;
-                esssay.Student.Class = matchedStudent.Class;
-                esssay.Student.GraduationYear = matchedStudent.GraduationYear;
+                esssay.Item1.Student.StudentId = matchedStudent.StudentId;
+                esssay.Item1.Student.FirstName = matchedStudent.FirstName;
+                esssay.Item1.Student.LastName = matchedStudent.LastName;
+                esssay.Item1.Student.Class = matchedStudent.Class;
+                esssay.Item1.Student.GraduationYear = matchedStudent.GraduationYear;
             }
             else
             {
@@ -302,8 +302,6 @@
             ReferenceHandler = ReferenceHandler.Preserve,
             PropertyNameCaseInsensitive = true
         };
-
-        _filteredEssays = _selectFilesForDownload ? _essays.Where(e => e.Status == EssayStatus.Reviewed) : _essays;
 
         _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
 
@@ -335,7 +333,7 @@
 
         try
         {
-            _essays.Single(e => e.EssayId == id).Status = EssayStatus.Reviewed;
+            _essays.Single(e => e.Item1.EssayId == id).Item1.Status = EssayStatus.Reviewed;
             _filesUploadedSuccesfully = false;
             StateHasChanged();
         }

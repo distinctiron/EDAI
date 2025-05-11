@@ -23,18 +23,17 @@ builder.Services.AddDbContext<EdaiContext>(options =>
     options.UseSqlite(connectionString)
         .UseSeeding((context, _) =>
         {
-            var testStudent = new Student()
-                { FirstName = "Egon", LastName = "Olsen", Class = "5C", GraduationYear = 2030 };
-            context.Set<Student>().Add(testStudent);
+            var testStudent1 = new Student()
+                { FirstName = "John", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
+            /*var testStudent2 = new Student()
+                { FirstName = "Jane", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
+            var testStudent3 = new Student()
+                { FirstName = "Ellen", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
+            */context.Set<Student>().Add(testStudent1);
+            //context.Set<Student>().Add(testStudent2);
+            //context.Set<Student>().Add(testStudent3);
             var testAssignment = new Assignment() {Name = "First Assignment", Description = "This is the first assignment.", Open = true};
             context.Set<Assignment>().Add(testAssignment);
-            var fileBytes = new byte[10];
-            var testDocument = new EdaiDocument() {DocumentFile = fileBytes, DocumentFileExtension = "docx", DocumentName = "TestDocument"};
-            context.Set<EdaiDocument>().Add(testDocument);
-            var testEssay = new Essay() { Assignment = testAssignment, Student = testStudent, Evaluated = false, Document = testDocument};
-            context.Set<Essay>().Add(testEssay);
-            //var testScore = new Score() {AssignmentAnswer = "Nice", EloquenceScore = 4, GrammarScore = 3, AssignmentAnswerScore = 3, OverallScore = 4, OverallStructure = "Very structured", Essay = testEssay};
-            //context.Set<Score>().Add(testScore);
             context.SaveChanges();
         }));
 

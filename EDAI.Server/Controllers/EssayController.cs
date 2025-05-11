@@ -44,25 +44,19 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     }
 
     [HttpPost("bulk", Name = "BulkAddEssay")]
-    public ActionResult<List<int>> BulkAddEssay(IEnumerable<EssayFileDTO> essays)
+    public IResult BulkAddEssay(EssayFileDTO essay)
     {
         
-        var entities = _mapper.Map<IEnumerable<Essay>>(essays);
-        foreach (var entity in entities)
-        {
-            entity.StudentId = entity.Student.StudentId;
-            entity.Student = null;
-        }
-        context.Essays.AddRange(entities);
+        var entity = _mapper.Map<Essay>(essay);
+        entity.StudentId = entity.Student.StudentId;
+        entity.Student = null;
+        context.Essays.Add(entity);
         context.SaveChanges();
 
-        foreach (var essay in essays)
-        {
-            essay.EssayId = entities.Single(e => e.AssignmentId == essay.AssignmentId && 
-                                                 e.StudentId == essay.Student.StudentId).EssayId;
-        }
+        essay.EssayId = entity.EssayId;
 
-        return Ok(essays);
+
+        return Results.Ok(essay);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteEssay")]

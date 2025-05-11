@@ -7,7 +7,7 @@ public static class CommentMapper
 {
     public static CommentIndexedDTO assignCharPositions(string essayContent, CommentDTO aiComment)
     {
-        var fromChar = essayContent.IndexOf(aiComment.RelatedText);
+        var fromChar = essayContent.IndexOf(aiComment.RelatedText, StringComparison.OrdinalIgnoreCase);
         var toChar = fromChar + aiComment.RelatedText.Length;
         return new CommentIndexedDTO(aiComment, fromChar,toChar);
     }

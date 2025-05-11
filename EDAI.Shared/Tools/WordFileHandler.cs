@@ -1,14 +1,7 @@
-using System.Runtime.InteropServices;
-using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Office2010.Word.DrawingCanvas;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
-using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
@@ -16,25 +9,17 @@ using Comment = DocumentFormat.OpenXml.Wordprocessing.Comment;
 using CommentRangeEnd = DocumentFormat.OpenXml.Wordprocessing.CommentRangeEnd;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
-using RunProperties = DocumentFormat.OpenXml.Drawing.RunProperties;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace EDAI.Shared.Tools;
 
 public class WordFileHandler : IDisposable
 {
-    
-    // This class needs a big refactor as methods are too long, contain too many parameters and have non-obvious side effects.
-    // This will be done once UI is functional to ensure lower lead times for functional refactoring
-    private Stream _answerDocumentStream;
-
     private Stream _reviewedDocumentStream;
-    
-    private WordprocessingDocument _answerDocument;
     
     private WordprocessingDocument _reviewedDocument;
 
-    private bool _isOriginalDisposed = false;
+    private string _documentText;
 
     private bool _isReviewedDisposed = false;
 
@@ -46,19 +31,15 @@ public class WordFileHandler : IDisposable
 
     public WordFileHandler(Stream stream, int essayId)
     {
-        _answerDocumentStream = new MemoryStream();
-        stream.Position = 0;
-        stream.CopyTo(_answerDocumentStream);
-        _answerDocumentStream.Position = 0;
         _reviewedDocumentStream = new MemoryStream();
         stream.Position = 0;
         stream.CopyTo(_reviewedDocumentStream);
         _reviewedDocumentStream.Position = 0;
         
-        _essayId = essayId;
-
-        _answerDocument = WordprocessingDocument.Open(_answerDocumentStream, false);
         _reviewedDocument = WordprocessingDocument.Open(_reviewedDocumentStream, true);
+        _documentText = _reviewedDocument.MainDocumentPart.Document.InnerText;
+        
+        _essayId = essayId;
         
         _dictionaryContent = IndexDictionaryContent(_reviewedDocument.MainDocumentPart.Document, _essayId);
         _indexedContents = IndexContent(_reviewedDocument.MainDocumentPart.Document, essayId);
@@ -66,18 +47,17 @@ public class WordFileHandler : IDisposable
     
     public void Dispose()
     {
-        if (!_isOriginalDisposed)
-        {
-            _answerDocumentStream.Dispose();
-            _isOriginalDisposed = true;
-        }
-
         if (!_isReviewedDisposed)
         {
             _reviewedDocumentStream.Dispose();
             _isReviewedDisposed = true;
         }
         
+    }
+
+    public string GetDocumentText()
+    {
+        return _documentText;
     }
     
     private IEnumerable<IndexedContent> IndexContent(Document document, int essayId)
@@ -147,17 +127,12 @@ public class WordFileHandler : IDisposable
         return returnvalue;
     }
 
-    public string GetDocumentText()
-    {
-        return _answerDocument.MainDocumentPart.Document.InnerText;
-    }
-
     public async Task<(EdaiDocument, IEnumerable<IndexedContent>)> CreateReviewDocument(EdaiDocument essayAnswer, GenerateScoreDTO generatedScore)
     {
         
         EnsureCommentsPartExists();
 
-        var aiComments = CommentMapper.assignCharPositions(GetDocumentText() ,generatedScore.ArgumentationComments.Concat(generatedScore.EloquenceComments)
+        var aiComments = CommentMapper.assignCharPositions(_documentText ,generatedScore.ArgumentationComments.Concat(generatedScore.EloquenceComments)
             .Concat(generatedScore.GrammarComments));
         
         InsertComments(aiComments);
@@ -176,7 +151,7 @@ public class WordFileHandler : IDisposable
         
         _reviewedDocument.MainDocumentPart.Document.Save();
         _reviewedDocument.MainDocumentPart.WordprocessingCommentsPart.Comments.Save();
-        _reviewedDocument.Dispose();
+        _reviewedDocument.Dispose(); // This is done here in order to flush changes to the document into stream
         
         return (new EdaiDocument
         {
@@ -190,67 +165,83 @@ public class WordFileHandler : IDisposable
     {
         foreach (var comment in aiComments)
         {
-            var startChar = comment.FromChar;
-            var endChar = comment.ToChar;
-            
-            var startContent =
-                _dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
-            var startRun = _dictionaryContent[startContent];
-            
-            var endContent = _dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
-            var endRun = _dictionaryContent[endContent];
+            try
+            {
 
-            var areStartEndIdentical = startRun == endRun;
+                Console.WriteLine($"Processing comment with related text: {comment.RelatedText}");
+            
+                var startChar = comment.FromChar;
+                var endChar = comment.ToChar;
+            
+                Console.WriteLine($"startchar: {startChar}");
+                Console.WriteLine($"startchar: {endChar}");
+            
+            
+                var startContent =
+                    _dictionaryContent.Keys.Single(i => i.FromCharInContent <= startChar && startChar < i.ToCharInContent);
+                var startRun = _dictionaryContent[startContent];
+            
+                var endContent = _dictionaryContent.Keys.Single(i => i.FromCharInContent < endChar && endChar <= i.ToCharInContent);
+                var endRun = _dictionaryContent[endContent];
+
+                var areStartEndIdentical = startRun == endRun;
                     
-            if (startContent.FromCharInContent == startChar)
-            {
-                if (startContent.ToCharInContent == endChar)
+                if (startContent.FromCharInContent == startChar)
                 {
-                    AddComment(startRun, startRun, comment.CommentFeedback);
-                }
-                else if (endContent.ToCharInContent == endChar)
-                { 
-                    AddComment(startRun, endRun, comment.CommentFeedback);
-                }
-                else
-                {
-                    var splitEndRuns = SplitRun(endRun, endChar);
-                    if (areStartEndIdentical)
+                    if (startContent.ToCharInContent == endChar)
                     {
-                        AddComment(splitEndRuns.Item1, splitEndRuns.Item1, comment.CommentFeedback);
+                        AddComment(startRun, startRun, comment.CommentFeedback);
+                    }
+                    else if (endContent.ToCharInContent == endChar)
+                    { 
+                        AddComment(startRun, endRun, comment.CommentFeedback);
                     }
                     else
                     {
-                        AddComment(startRun, splitEndRuns.Item1, comment.CommentFeedback);   
+                        var splitEndRuns = SplitRun(endRun, endChar);
+                        if (areStartEndIdentical)
+                        {
+                            AddComment(splitEndRuns.Item1, splitEndRuns.Item1, comment.CommentFeedback);
+                        }
+                        else
+                        {
+                            AddComment(startRun, splitEndRuns.Item1, comment.CommentFeedback);   
+                        }
                     }
                 }
-            }
-            else
-            {
-                var splitStartRuns = SplitRun(startRun, startChar);
-                var newStartRun = splitStartRuns.Item2;
+                else
+                {
+                    var splitStartRuns = SplitRun(startRun, startChar);
+                    var newStartRun = splitStartRuns.Item2;
 
-                if (startContent.ToCharInContent == endChar)
-                {
-                    AddComment(newStartRun, newStartRun, comment.CommentFeedback);
-                }
-                else if (endContent.ToCharInContent == endChar)
-                {
-                    AddComment(newStartRun, endRun, comment.CommentFeedback);
-                }
-                else
-                {
-                    if (areStartEndIdentical)
+                    if (startContent.ToCharInContent == endChar)
                     {
-                        var endRunSplit = SplitRun(splitStartRuns.Item2, endChar);
-                        AddComment(endRunSplit.Item1, endRunSplit.Item1, comment.CommentFeedback);
+                        AddComment(newStartRun, newStartRun, comment.CommentFeedback);
+                    }
+                    else if (endContent.ToCharInContent == endChar)
+                    {
+                        AddComment(newStartRun, endRun, comment.CommentFeedback);
                     }
                     else
                     {
-                        var endRunSplit = SplitRun(endRun, endChar);
-                        AddComment(newStartRun, endRunSplit.Item1, comment.CommentFeedback);   
+                        if (areStartEndIdentical)
+                        {
+                            var endRunSplit = SplitRun(splitStartRuns.Item2, endChar);
+                            AddComment(endRunSplit.Item1, endRunSplit.Item1, comment.CommentFeedback);
+                        }
+                        else
+                        {
+                            var endRunSplit = SplitRun(endRun, endChar);
+                            AddComment(newStartRun, endRunSplit.Item1, comment.CommentFeedback);   
+                        }
                     }
                 }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                continue;
             }
             
             UpdateDocumentState();
@@ -323,7 +314,7 @@ public class WordFileHandler : IDisposable
             throw new ArgumentException($"Invalid arguments: originalRun = {originalRun}, splitIndex = {splitIndex}");
         
         var text = originalRun.InnerText;
-        var startIndex = GetDocumentText().IndexOf(text, StringComparison.Ordinal);
+        var startIndex = _documentText.IndexOf(text, StringComparison.Ordinal);
         var runSplitIndex = splitIndex - startIndex;
 
         try
@@ -364,10 +355,10 @@ public class WordFileHandler : IDisposable
 
     }
 
-    private DocumentFormat.OpenXml.Wordprocessing.RunProperties? CloneRunProperties(Run run)
+    private RunProperties? CloneRunProperties(Run run)
     {
         return run?.RunProperties is not null
-            ? (DocumentFormat.OpenXml.Wordprocessing.RunProperties)run.RunProperties.CloneNode(true)
+            ? (RunProperties)run.RunProperties.CloneNode(true)
             : null;
     }
 
@@ -441,51 +432,6 @@ public class WordFileHandler : IDisposable
         return nextId.ToString();
 
     }
-    
-    public async Task AddComment(Stream stream, IEnumerable<FeedbackComment> comments)
-    {
-        stream.Position = 0;
-        
-        using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(stream,true))
-        {
-            if (wordDoc is null)
-            {
-                throw new ArgumentNullException("Document is null");
-            }
-
-            WordprocessingCommentsPart wordprocessingCommentsPart =
-                wordDoc.MainDocumentPart.WordprocessingCommentsPart ??
-                wordDoc.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
-
-            //Paragraph firstParagraph = wordDoc.MainDocumentPart.Document.Descendants<Paragraph>().First();
-            wordprocessingCommentsPart.Comments ??= new Comments();
-
-            int id = 0;
-
-            if (wordDoc.MainDocumentPart.GetPartsOfType<WordprocessingCommentsPart>().Any())
-            {
-                if (wordprocessingCommentsPart.Comments.HasChildren)
-                {
-                    id = (wordprocessingCommentsPart.Comments.Descendants<Comment>().Select(c =>
-                    {
-                        if (c.Id is not null && c.Id.Value is not null)
-                        {
-                            return int.Parse(c.Id.Value);
-                        }
-                        else
-                        {
-                            throw new ArgumentNullException("Comment id is null");
-                        }
-                    }).Max() + 1);
-                }
-            }
-
-            //InsertComments(wordDoc, wordprocessingCommentsPart, comments, id);
-
-        }
-        
-    }
-
 
     private void InsertFeedback(string feedback, System.Drawing.Color feedbackColor)
     {

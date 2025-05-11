@@ -1,21 +1,20 @@
-﻿@inherits LayoutComponentBase
+﻿@using iText.StyledXmlParser.Jsoup.Select
+@inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">EDAI</MudText>
+    <MudAppBar Elevation="0" Color="Color.Transparent" Style="border-bottom: none; box-shadow: none;">
+        <MudText Href="" Typo="Typo.h6" Class="ml-3">EDAI</MudText>
+        <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Review</MudNavLink>
+        <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
+        <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Configure</MudNavLink>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="mt-16 pa-4">
+    <MudMainContent Class="mt-15 pa-15 content-container" Style="display: flex; justify-content: center; align-items: center;">
         @Body
     </MudMainContent>
 </MudLayout>
@@ -29,7 +28,7 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _isDarkMode = true;
+    private bool _isDarkMode = false;
     private MudTheme? _theme = null;
 
     protected override void OnInitialized()

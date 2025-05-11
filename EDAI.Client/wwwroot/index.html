@@ -7,10 +7,11 @@
     <title>EDAI</title>
     <base href="/" />
     <link rel="stylesheet" href="css/app.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="EDAI.Client.styles.css" rel="stylesheet" />
+    <link href="EDAI.Client.styles.css?v=1" rel="stylesheet" />
     <style>
         .loader {
             width: 16px;
@@ -82,6 +83,13 @@
 </body>
 
 <script>
+    window.downloadFileFromBytes = (fileName, mimeType, base64Data) => {
+        const link = document.createElement('a');
+        link.href = `data:${mimeType};base64,${base64Data}`;
+        link.download = fileName;
+        link.click();
+    };
+    
     window.downloadFile = (fileName, byteArray) => {
         const blob = new Blob([new Uint8Array(byteArray)], { type: "application/zip" });
         const url = URL.createObjectURL(blob);
@@ -95,13 +103,5 @@
     };
 </script>
 
-<script>
-    window.downloadFileFromBytes = (fileName, mimeType, base64Data) => {
-        const link = document.createElement('a');
-        link.href = `data:${mimeType};base64,${base64Data}`;
-        link.download = fileName;
-        link.click();
-    };
-</script>
 
 </html>
