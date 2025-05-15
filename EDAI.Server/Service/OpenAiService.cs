@@ -26,14 +26,16 @@ public class OpenAiService : IOpenAiService
     }
 
     private IMapper _mapper;
-    
+
     private static string keyFromEnvironment =
-        "14iJ5AHR1VzKxf8yHNmWWqEFGPKz41zIo06oG816TufVbeKNyDwKJQQJ99AKACfhMk5XJ3w3AAABACOGRcGt"; 
-        
+        //"14iJ5AHR1VzKxf8yHNmWWqEFGPKz41zIo06oG816TufVbeKNyDwKJQQJ99AKACfhMk5XJ3w3AAABACOGRcGt"; 
+        "9qI35RSMYA99C35ZuyV3zmJ7KQw3OYZgNDTvh8BQg8StXOvABkV8JQQJ99BEACfhMk5XJ3w3AAABACOGG3J8";
         //Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
     
     private static AzureOpenAIClient _openAiClient = new(
-        new Uri("https://edai-llm.openai.azure.com"),
+        //new Uri("https://edai-llm.openai.azure.com"), 
+        new Uri("https://edai-v2.openai.azure.com/"),
+        
         new ApiKeyCredential(keyFromEnvironment),
         new AzureOpenAIClientOptions
         {
@@ -42,19 +44,24 @@ public class OpenAiService : IOpenAiService
                 {
                     Timeout = TimeSpan.FromMinutes(10)
                 }
-                ) 
+                ),
         }
         );
     
     private static List<ChatMessage> messages = new List<ChatMessage>();
 
-    private static ChatClient _client = _openAiClient.GetChatClient("gpt-4o-mini");
+    private static ChatClient _client = _openAiClient.GetChatClient("gpt-4o-edai");
 
-    public void InitiateConversation(string essayText, string assignmentDescription, string referencetext = null)
+    public void InitiateScoreConversation(string essayText, string assignmentDescription, string referencetext = null)
     {
         messages.Add(new SystemChatMessage(TextEvaluatingPrompts.SystemRole.Prompt));
         messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideAssignmentContextPrompt(assignmentDescription,referencetext)));
         messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideEssay(essayText)));
+    }
+
+    public void InitiateStudentSummaryConversation()
+    {
+        messages.Add(TextEvaluatingPrompts.SystemRoleStudent.Prompt);
     }
 
     public void AddChatAssistantMessage(string answer)
@@ -240,7 +247,7 @@ public class OpenAiService : IOpenAiService
             AssignmentAnswerRecommendation = answerArea.Recommendation.Feedback,
             AssignmentAnswerScore = answerArea.Score.Score,
             OverallScore = (grammarArea.Score.Score + eloquenceArea.Score.Score + argumentationArea.Score.Score 
-                           + structureArea.Score.Score + answerArea.Score.Score) * 0.2
+                           + structureArea.Score.Score + answerArea.Score.Score) * 0.2f
 
         };
         
@@ -305,6 +312,16 @@ public class OpenAiService : IOpenAiService
             Console.WriteLine(e);
             throw;
         };
+    }
+
+    public async Task<StudentSummaryDTO> GetStudentSummary(IEnumerable<Score> scores)
+    {
+        var input = JsonConvert.SerializeObject(scores);
+        
+        var studentSummaryDto =
+            await GetAiObjectResponseAsync<StudentSummaryDTO>(input,messages);
+
+        return studentSummaryDto;
     }
 
     private List<ChatMessage> CopyConversation(List<ChatMessage> existingMessages)

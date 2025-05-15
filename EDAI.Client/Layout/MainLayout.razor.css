@@ -18,12 +18,6 @@ body, p, span {
     font-weight: 400;
 }
 
-.content-container{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
 }

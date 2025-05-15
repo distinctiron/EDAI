@@ -92,7 +92,7 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
                     {
                         var essayText = wordFileHandler.GetDocumentText();
                     
-                        openAiService.InitiateConversation(essayText, assignment.Description, referenceText);
+                        openAiService.InitiateScoreConversation(essayText, assignment.Description, referenceText);
                     
                         var generatedScore = await openAiService.AssessEssayAsync();
 

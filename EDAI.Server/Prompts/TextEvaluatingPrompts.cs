@@ -538,6 +538,16 @@ public static class TextEvaluatingPrompts
                  "\nUse clear, encouraging language suitable for younger students." +
                  "\nAvoid giving a score—focus solely on helping the student understand how to structure their essay better.");
 
+    public static readonly Text SystemRoleStudent =
+        new Text(
+            "You are an AI tutor assistant who reads through all the feedback a student has received and summarizes +" +
+            "the main points and threads, which appear throughout their feedback, succinctly, precisely and specifically. The feedback, which the student +" +
+            "has been given will be presented to you in a json format where you will also receive scores for how well the student has done" +
+            "in specific areas for each assignment. These scores are on a scale of 0-5, where 0 is the worst and 5 is the best. You must output 3 lines of +" +
+            "text summarising this and also produce a sentence for each of three specific areas the student should focus on developing their english writing skills. " +
+            "These areas must be more specific than the areas which they are scored on, however it must related to issues you see throughout multiple " +
+            "essays. Each bullet should be no more than a sentence. Do not use any emojis in your text.");
+
     public static string ProvideAssignmentContextPrompt(string assignmentDescription, string referenceText = null)
     {
         var prompt = "The description for the assignment you are about to assess and correct is the following: " +

@@ -1,17 +1,19 @@
 ﻿using AutoMapper;
 using EDAI.Server.Data;
+using EDAI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class StudentController(EdaiContext context, IMapper mapper) : ControllerBase
+public class StudentController(EdaiContext context, IMapper mapper, IOpenAiService openAiService) : ControllerBase
 {
     [HttpGet(Name = "GetStudents")]
     public IEnumerable<StudentDTO> GetStudents()
@@ -32,6 +34,16 @@ public class StudentController(EdaiContext context, IMapper mapper) : Controller
     {
         var student = context.Students.Find(id);
         return student == null ? Results.NotFound() : Results.Ok(student);
+    }
+    
+    [HttpGet("studentSummary/{id:int}", Name = "GetStudentSummary")]
+    public async Task<IResult> GetStudentSummary(int id)
+    {
+        var scores = context.Scores.Where(s => s.Essay.StudentId == id);
+        openAiService.InitiateStudentSummaryConversation();
+        var studentSummary = await openAiService.GetStudentSummary(scores);
+        
+        return Results.Ok(studentSummary);
     }
 
     [HttpPost(Name = "AddStudent")]

@@ -4,7 +4,6 @@
 @using EDAI.Client.Components
 @using EDAI.Shared.Exceptions
 @using EDAI.Shared.Models.DTO
-@using EDAI.Shared.Models.Entities
 @using EDAI.Shared.Models.Enums
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
@@ -15,27 +14,31 @@
 
 <PageTitle>File Upload</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">File Upload</MudText>
+
 
 <MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h3" GutterBottom="true">File Upload</MudText>
+    </MudItem>
+    
     <MudItem xs="2">
         <MudSelect T="AssignmentDTO" @bind-Value="_assignment" Placeholder="Select Assignment" Label="Assignment">
             @foreach (var assignment in _assignments)
             {
                 <MudSelectItem Value="assignment">@assignment.Name</MudSelectItem>
             }
-        </MudSelect>        
+        </MudSelect>
     </MudItem>
     <MudItem xs="2">
         <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create</MudButton>
     </MudItem>
     @if (_assignmentCreated)
     {
-    <MudItem xs="2" Class="justify-end">
-        <MudChip  T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
-    </MudItem>
+        <MudItem xs="2" Class="justify-end">
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+        </MudItem>
     }
-    <MudItem xs=@(!_assignmentCreated && _assignment == null ? 8:4) Class="justify-end" >
+    <MudItem xs=@(!_assignmentCreated && _assignment == null ? 8 : 4) Class="justify-end">
         <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".docx" FilesChanged="UploadFiles">
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
@@ -45,7 +48,7 @@
             </ActivatorContent>
         </MudFileUpload>
     </MudItem>
-    
+
     @if (_essays.Any())
     {
         @if (_essays.Any(e => e.Item1.Status == EssayStatus.Reviewed))
@@ -54,14 +57,14 @@
                 <MudSwitch @bind-Value="_selectFilesForDownload" Label="Select files for download" Color="Color.Primary"/>
             </MudItem>
         }
-        
-        <MudItem xs = "12">
-            <MudDataGrid MultiSelection="true" T="(EssayFileDTO,IBrowserFile)" Items="_selectFilesForDownload ? _essays.Where(e => e.Item1.Status == EssayStatus.Reviewed) : _essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
+
+        <MudItem xs="12">
+            <MudDataGrid MultiSelection="true" T="(EssayFileDTO, IBrowserFile)" Items="_selectFilesForDownload ? _essays.Where(e => e.Item1.Status == EssayStatus.Reviewed) : _essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
                 <Columns>
                     <PropertyColumn Property="x => x.Item2.Name" Title="File Name" Editable="false"/>
                     <PropertyColumn Property="x => x.Item1.Student.FullName" Title="Student" Editable="true">
                         <EditTemplate>
-                            <MudAutocomplete  Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
+                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
                         </EditTemplate>
                     </PropertyColumn>
                     <TemplateColumn Title="Status">
@@ -82,39 +85,42 @@
                     </TemplateColumn>
                     @if (_selectFilesForDownload)
                     {
-                        <SelectColumn T="(EssayFileDTO,IBrowserFile)" />  
+                        <SelectColumn T="(EssayFileDTO, IBrowserFile)"/>
                     }
                 </Columns>
             </MudDataGrid>
         </MudItem>
-        
+
         @if (!_selectFilesForDownload)
         {
-            <MudItem xs = "2">
+            <MudItem xs="2">
                 <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
                     Review
                 </MudButton>
             </MudItem>
         }
-        
+
         @if (!_validStudents)
         {
             <MudItem xs="2" Class="justify-end">
-                <MudChip  T="string" Color="Color.Error" Variant="Variant.Text">Error in assigning students</MudChip>
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Text">Error in assigning students</MudChip>
             </MudItem>
         }
+
         @if (_filesUploadedSuccesfully)
         {
             <MudItem xs="2" Class="justify-end">
-                <MudChip  T="string" Color="Color.Success" Variant="Variant.Text">Files Uploaded</MudChip>
+                <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Files Uploaded</MudChip>
             </MudItem>
         }
+
         @if (_errorInFilesUploaded)
         {
             <MudItem xs="2" Class="justify-end">
-                <MudChip  T="string" Color="Color.Error" Variant="Variant.Text">Error in File Upload</MudChip>
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Text">Error in File Upload</MudChip>
             </MudItem>
         }
+
         @if (_selectFilesForDownload)
         {
             <MudItem xs="2">
