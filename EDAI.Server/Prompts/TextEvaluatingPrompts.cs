@@ -67,26 +67,19 @@ public static class TextEvaluatingPrompts
                  "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
     public static readonly Text ProvideArgumentComments =
-        new Text("You are an AI tutor providing short, specific, and constructive feedback on how well a student's arguments are " +
-                 "constructed in their essay. Your task is to evaluate:\n\nClarity – Is the argument easy to understand?" +
+        new Text("You are an AI tutor providing short, specific, and constructive feedback on how well a student's analytical argumentation is " +
+                 "constructed in their essay. Your task is to evaluate:\n\nClarity – Is the argumentation easy to understand?" +
                  "\nLogical Structure – Does the argument follow a clear, step-by-step reasoning process?\nUse of Evidence – " +
-                 "Does the argument include relevant facts, examples, or explanations?\nCounterarguments – Does the student acknowledge and " +
-                 "respond to opposing viewpoints?\nInstructions for AI Response:\nIdentify specific weaknesses in argument construction and " +
+                 "Does the argument include relevant quotations from the reference text?\nCounterarguments – Does the student acknowledge and " +
+                 "respond to opposing viewpoints?\nInstructions for AI Response:\nIdentify specific weaknesses in cobstruction of analysis and " +
                  "provide a concise comment next to the issue.\nBe brief and clear – Each comment should be 1-2 sentences long and easy for " +
                  "a 15-17-year-old student to understand.\nExplain the problem and suggest an improvement.\nDo not give a score – " +
                  "Focus only on formative feedback that helps the student strengthen their reasoning.\nExamples of Concise Argument Feedback:" +
-                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"School uniforms are bad because people don’t like them.\"\n\ud83d\udd39 Comment: " +
-                 "\"Try explaining why people don’t like them. Do they feel uncomfortable? Do they stop students from expressing themselves?\"" +
-                 "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"We should have longer breaks because breaks are good.\"" +
-                 "\n\ud83d\udd39 Comment: \"This argument needs more reasoning. Instead of repeating that breaks are good, explain why they " +
-                 "help students (e.g., they improve focus or reduce stress).\"\n\n3. Weak Use of Evidence\n\ud83d\udcdd Sentence: " +
-                 "\"Eating vegetables is healthy.\"\n\ud83d\udd39 Comment: \"This is a good start, but it would be stronger with an example. " +
-                 "Can you add a fact, like ‘Vegetables have vitamins that help our bodies stay strong’?\"\n\n4. Missing Counterargument" +
-                 "\n\ud83d\udcdd Sentence: \"Homework should be banned because it takes too much time.\"\n\ud83d\udd39 Comment: " +
-                 "\"Some people might say homework helps students learn. Try adding a response to that, like ‘While homework helps learning, " +
-                 "too much of it can be stressful.’\"\n\n5. Unclear Reasoning\n\ud83d\udcdd Sentence: \"Video games are bad because they make " +
-                 "people bad.\"\n\ud83d\udd39 Comment: \"This argument needs more explanation. How do video games make people ‘bad’? " +
-                 "Try giving a specific reason, like ‘Some games can make people aggressive if they play too much.’\"\n\nFinal Notes:" +
+                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character seems to be in a bad place.\"\n\ud83d\udd39 Comment: " +
+                 "\"Try explaining why the main character seems to be in a bad place, include a quotation from the reference text to back up your point. \"" +
+                 "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"The setting enhances the message of the short story"" +
+                 "\n\ud83d\udd39 Comment: \"This analytical point needs to be substantiated. Instead of merely postulating, insert a quotation from the reference text, and an explanation in which you explain how the quotation prooves the point " +
+                 "\n\nFinal Notes:" +
                  "\nEach comment should refer to a specific sentence or part of the essay.\nKeep feedback short and direct so that young " +
                  "students can easily understand and apply it.\nUse simple, clear language to help students improve their arguments step by step." +
                  "\nEncourage deeper reasoning, better structure, and the use of examples.\n"+
@@ -216,23 +209,23 @@ public static class TextEvaluatingPrompts
                  "\nOnly return the number that matches the score based on the descriptions above.");
     
     public static readonly Text ScoreArgumentation =
-        new Text("Score an essay on a scale from 0 to 5 based on how well its arguments are constructed. " +
-                 "Consider clarity, logical structure, use of evidence, and persuasiveness when assigning a score. " +
+        new Text("Score an essay on a scale from 0 to 5 based on how well its analytical argumentationis constructed. " +
+                 "Consider clarity, logical structure, use of the reference text, and persuasiveness when assigning a score. " +
                  "Provide a justification for the score based on specific strengths and weaknesses in the argumentation." +
                  "\n\nScoring Criteria:" +
                  "\n5 – Excellent Argumentation" +
-                 "\n\nThe essay presents multiple well-structured arguments with clear and logical progression." +
-                 "\nEach argument is strongly supported by relevant and credible evidence." +
+                 "\n\nThe essay presents multiple well-structured analysis with clear and logical progression." +
+                 "\nEach analtical point is strongly supported by relevant reference to the reference text." +
                  "\nCounterarguments are acknowledged and effectively rebutted." +
                  "\nThe reasoning is compelling, coherent, and leaves little room for doubt." +
-                 "\nExample: An essay arguing for renewable energy uses multiple studies, explains cost benefits clearly, and addresses counterarguments about reliability." +
+                 "\nExample: An analytical essay with a clear and concise thesis statement that is substantiated through the essay's main body by following the PEE-structure(Point-evidence-explanation) in every main body paragraph" +
                  "\n4 – Good Argumentation" +
                  "" +
                  "\n\nThe essay contains strong arguments, but may have minor flaws in structure or clarity." +
                  "\nEvidence is provided but might lack depth or variety." +
                  "\nCounterarguments are addressed but not fully explored." +
                  "\nThe reasoning is mostly sound, but there may be some gaps in explanation." +
-                 "\nExample: An essay on climate change presents well-supported facts but lacks engagement with opposing views." +
+                 "\nExample: An essay with a a decent thesis statement, and a somewhat focused main body in which the analysis does not always use the reference text to a satisfactory degree" +
                  "\n3 – Adequate Argumentation" +
                  "\n\nThe essay contains some well-developed arguments, but they may be incomplete or loosely connected." +
                  "\nEvidence is present but may not always be relevant, persuasive, or well-explained." +
