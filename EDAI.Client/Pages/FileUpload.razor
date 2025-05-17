@@ -1,0 +1,391 @@
+@page "/fileupload"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using EDAI.Client.Components
+@using EDAI.Shared.Exceptions
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient _Client
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+
+<PageTitle>File Upload</PageTitle>
+
+
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h3" GutterBottom="true">File Upload</MudText>
+    </MudItem>
+    
+    <MudItem xs="2">
+        <MudSelect T="AssignmentDTO" @bind-Value="_assignment" Placeholder="Select Assignment" Label="Assignment">
+            @foreach (var assignment in _assignments)
+            {
+                <MudSelectItem Value="assignment">@assignment.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Create" @onclick="OpenDialogAsync">Create</MudButton>
+    </MudItem>
+    @if (_assignmentCreated)
+    {
+        <MudItem xs="2" Class="justify-end">
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+        </MudItem>
+    }
+    <MudItem xs=@(!_assignmentCreated && _assignment == null ? 8 : 4) Class="justify-end">
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".docx" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
+                           Disabled="@(_assignment == null)">
+                    Upload
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudItem>
+
+    @if (_essays.Any())
+    {
+        @if (_essays.Any(e => e.Item1.Status == EssayStatus.Reviewed))
+        {
+            <MudItem xs="3" Class="justify-end">
+                <MudSwitch @bind-Value="_selectFilesForDownload" Label="Select files for download" Color="Color.Primary"/>
+            </MudItem>
+        }
+
+        <MudItem xs="12">
+            <MudDataGrid MultiSelection="true" T="(EssayFileDTO, IBrowserFile)" Items="_selectFilesForDownload ? _essays.Where(e => e.Item1.Status == EssayStatus.Reviewed) : _essays" ReadOnly="false" EditMode="DataGridEditMode.Cell" Bordered="false" Dense="false" bind-SelectedItems="_selectedItems" SelectedItemsChanged="OnSelectedItemsChanged" @ref="_dataGrid">
+                <Columns>
+                    <PropertyColumn Property="x => x.Item2.Name" Title="File Name" Editable="false"/>
+                    <PropertyColumn Property="x => x.Item1.Student.FullName" Title="Student" Editable="true">
+                        <EditTemplate>
+                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
+                        </EditTemplate>
+                    </PropertyColumn>
+                    <TemplateColumn Title="Status">
+                        <EditTemplate>
+                            @if (context.Item.Item1.Status == EssayStatus.AwaitingUpload)
+                            {
+                                <MudChip T="string">Awaiting Upload</MudChip>
+                            }
+                            else if (context.Item.Item1.Status == EssayStatus.Processing)
+                            {
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Success">Reviewed</MudChip>
+                            }
+                        </EditTemplate>
+                    </TemplateColumn>
+                    @if (_selectFilesForDownload)
+                    {
+                        <SelectColumn T="(EssayFileDTO, IBrowserFile)"/>
+                    }
+                </Columns>
+            </MudDataGrid>
+        </MudItem>
+
+        @if (!_selectFilesForDownload)
+        {
+            <MudItem xs="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Feedback" OnClick="SendFilesForReview">
+                    Review
+                </MudButton>
+            </MudItem>
+        }
+
+        @if (!_validStudents)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Text">Error in assigning students</MudChip>
+            </MudItem>
+        }
+
+        @if (_filesUploadedSuccesfully)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Files Uploaded</MudChip>
+            </MudItem>
+        }
+
+        @if (_errorInFilesUploaded)
+        {
+            <MudItem xs="2" Class="justify-end">
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Text">Error in File Upload</MudChip>
+            </MudItem>
+        }
+
+        @if (_selectFilesForDownload)
+        {
+            <MudItem xs="2">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!_selectedItems.Any())" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFiles">Download</MudButton>
+            </MudItem>
+        }
+    }
+</MudGrid>
+
+
+
+@code {
+    private HubConnection? _hubConnection;
+
+    private MudDataGrid<(EssayFileDTO,IBrowserFile)>? _dataGrid;
+
+    private HashSet<(EssayFileDTO,IBrowserFile)> _selectedItems = new();
+
+    private string? _connectionString;
+    
+    private bool _validStudents = true;
+
+    private bool _filesUploadedSuccesfully = false;
+    
+    private bool _errorInFilesUploaded = false;
+
+    private const int _maxFileSize = 1024 * 1024 * 10; 
+
+    private AssignmentDTO? _assignment;
+
+    private bool _assignmentCreated = false;
+
+    private bool _selectFilesForDownload = false;
+
+    private IEnumerable<AssignmentDTO> _assignments = new List<AssignmentDTO>();
+
+    private string _assignmentClass;
+
+    private IEnumerable<StudentDTO> _students;
+
+    private IList<(EssayFileDTO,IBrowserFile)> _essays = new List<(EssayFileDTO,IBrowserFile)>();
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            _essays.Add((new EssayFileDTO
+            {
+                AssignmentId = _assignment.AssignmentId,
+                /*Document = new EdaiDocument
+                {
+                    DocumentFile = memoryStream.ToArray(),
+                    DocumentName = Path.GetFileNameWithoutExtension(file.Name),
+                    DocumentFileExtension = Path.GetExtension(file.Name)
+                },*/
+                Student = new StudentDTO()
+            },file));
+        }
+    }
+
+    private async Task DownloadFiles()
+    {
+        var ids = _selectedItems.Select(e => e.Item1.EssayId);
+        
+        if (ids.Count() > 1)
+        {
+            var queryString = string.Join("&", ids.Select(id => $"ids={id}"));
+            var url = $"Score/bulkdownload?{queryString}";
+
+            var response = await _Client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "reviewed_documents.zip";
+            var mimeType = response.Content.Headers.ContentType?.ToString() ?? "application/zip";
+            var base64 = Convert.ToBase64String(content);
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, mimeType, base64);
+        }
+        else
+        {
+            var id = ids.Single();
+            var response = await _Client.GetAsync($"Score/{id}/downloadScoredDocumentFile");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"reviewed_{id}.docx";
+            var mime = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+            var base64 = Convert.ToBase64String(content);
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, mime, base64);
+            
+        }
+    }
+    
+    private void OnSelectedItemsChanged(HashSet<(EssayFileDTO,IBrowserFile)> selectedItems)
+    {
+        _selectedItems = selectedItems;
+        StateHasChanged(); 
+    }
+
+    private async Task SendFilesForReview()
+    {
+        try
+        {
+            await AssignStudentIds();
+        }
+        catch (NoStudentException e)
+        {
+            _validStudents = false;
+            return;
+        }
+        
+        _validStudents = true;
+
+        foreach (var _essay in _essays)
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = _essay.Item2.OpenReadStream();
+            
+            content.Add(new StreamContent(fileContent),"file",_essay.Item2.Name);
+
+            var documentResponse = await _Client.PostAsync("Document/uploadFiles", content);
+            var documentId = await documentResponse.Content.ReadFromJsonAsync<int>();
+
+            _essay.Item1.EdaiDocumentId = documentId;
+            var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essay.Item1);
+            
+            if (essayResponse.IsSuccessStatusCode)
+            {
+                _errorInFilesUploaded = false;
+                _filesUploadedSuccesfully = true;
+                var essay = await essayResponse.Content.ReadFromJsonAsync<EssayFileDTO>();
+                _essay.Item1.EssayId = essay.EssayId;
+                _essay.Item1.Status = EssayStatus.Processing;
+            }
+            else
+            {
+                _errorInFilesUploaded = true;
+                _filesUploadedSuccesfully = false;
+                break;
+            }
+        }
+
+        if (_filesUploadedSuccesfully && !_errorInFilesUploaded)
+        {
+            var documentIds = _essays.Select(e => e.Item1.EdaiDocumentId).OfType<int>();
+            var request = new GenerateScoreRequestDTO
+            { 
+                DocumentIds = documentIds,
+                ConnectionId = _connectionString
+            };
+            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", request);
+        }
+
+    }
+
+    private async Task AssignStudentIds()
+    {
+        foreach (var esssay in _essays)
+        {
+            var studentMatches = _students.Where(s => s.FullName == esssay.Item1.Student.FullName);
+            
+            if (studentMatches.Count() == 1)
+            {
+                var matchedStudent = studentMatches.Single();
+
+                esssay.Item1.Student.StudentId = matchedStudent.StudentId;
+                esssay.Item1.Student.FirstName = matchedStudent.FirstName;
+                esssay.Item1.Student.LastName = matchedStudent.LastName;
+                esssay.Item1.Student.Class = matchedStudent.Class;
+                esssay.Item1.Student.GraduationYear = matchedStudent.GraduationYear;
+            }
+            else
+            {
+                throw new NoStudentException();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
+
+        _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+            .Build();
+
+        _hubConnection.On<string>("ScoreGenerated",HandleReviewCompletion);
+
+        await _hubConnection.StartAsync();
+        _connectionString = _hubConnection.ConnectionId;
+        
+        Console.WriteLine($"SignalR state is {_hubConnection.State} with connectionId {_connectionString}");
+    }
+
+    private void HandleReviewCompletion(string essayId)
+    {
+        int id;
+        var succes = int.TryParse(essayId, out id);
+
+        if (!succes)
+        {
+            throw new InvalidCastException($"Id candidate {essayId} could not be converted to integer");
+        }
+
+        try
+        {
+            _essays.Single(e => e.Item1.EssayId == id).Item1.Status = EssayStatus.Reviewed;
+            _filesUploadedSuccesfully = false;
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            CloseButton = true,
+            MaxWidth = MaxWidth.ExtraLarge,
+            FullWidth = true,
+            NoHeader    = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<AssignmentCreationDialog>("Create Assignment", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var httpOptions = new JsonSerializerOptions()
+            {
+                ReferenceHandler = ReferenceHandler.Preserve,
+                PropertyNameCaseInsensitive = true
+            };
+
+            _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", httpOptions);
+
+            _assignmentCreated = true;
+        }
+
+    }
+
+    private async Task<IEnumerable<string>> SearchFirstName(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _students.Select(x => x.FullName).Distinct();
+
+        return _students.Select(x => x.FullName).Where(firstName => firstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Distinct();
+    }
+
+}

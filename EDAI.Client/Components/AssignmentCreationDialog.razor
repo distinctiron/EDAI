@@ -1,0 +1,128 @@
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using DocumentFormat.OpenXml.Wordprocessing
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.DTO.OpenAI
+@using Color = MudBlazor.Color
+@inject HttpClient _Client
+@using Microsoft.AspNetCore.Http
+<h3 class="pl-5 pt-5">Create Assignment</h3>
+
+<MudGrid Class="p-5">
+    @if (_createdAssignment)
+    {
+        <MudItem xs="12">
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Assignment Created</MudChip>
+        </MudItem>
+    }
+    <MudItem xs="12">
+        <EditForm Model="@_assignmentDto" OnSubmit="CreateAssignmentAsync">
+            <DataAnnotationsValidator/>
+            <MudCard >
+                <MudCardContent>
+                    <MudTextField T="string" @bind-Value="_assignmentDto.Name" Label="Name of Assignment" Required="true" RequiredError="Specify the name of the assignment"/>
+                    <MudTextField T="string" @bind-Value="_assignmentDto.Description" Label="Assignment Description" Required="true" RequiredError="Provide description of assignment"
+                                  Variant="Variant.Outlined" Lines="6"/>
+                    <MudSelect T="string" @bind-SelectedValues="_assignmentClasses" Label="Class" MultiSelection="true">
+                        @foreach (var studentClass in _studentClasses)
+                        {
+                            <MudSelectItem T="string" Value="@studentClass">@studentClass</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudCardContent>
+                <div class="d-flex align-center justify-space-between">
+                    <MudFileUpload Class="pl-5 pb-5" T="IBrowserFile" FilesChanged="UploadFiles" Accept=".pdf" Required="false">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.AttachFile">
+                                Attach Reference File
+                            </MudButton>
+                            @if (_referenceFile is not null)
+                            {
+                                <MudChip T = "string"> @_referenceFile.Name</MudChip>
+                            }
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudCardActions Class="pr-5 pb-5">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
+                    </MudCardActions>
+                </div>
+            </MudCard>
+        </EditForm>
+    </MudItem>
+</MudGrid>
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    
+    private bool _createdAssignment = false;
+    private string _selectedClass = "No class selected";
+    private bool _validForm;
+    private AssignmentDTO _assignmentDto = new AssignmentDTO();
+    private IBrowserFile _referenceFile;
+    
+    private const long maxFileSize = 10 * 1024 * 1024;
+
+    private IEnumerable<string> _studentClasses = new List<string>();
+
+    private IEnumerable<string> _assignmentClasses = new HashSet<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        var students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+
+        _studentClasses = students.Select(x => x.Class).Distinct();
+    }
+
+    private async void CreateAssignmentAsync(EditContext context)
+    {
+
+        _assignmentDto.Open = true;
+        _assignmentDto.StudentClasses = _assignmentClasses;
+
+        var assignmentRepsonse = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+
+        var assignmentId = await assignmentRepsonse.Content.ReadFromJsonAsync<int>();
+
+        if (_referenceFile is not null)
+        {
+            using var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(_referenceFile.OpenReadStream(maxFileSize));
+
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(_referenceFile.ContentType);
+            
+            content.Add(content:streamContent, name:"\"file\"", fileName:_referenceFile.Name); 
+            
+            var fileResponse = await _Client.PostAsync($"Assignment/{assignmentId}/uploadDocumentFile", content);
+
+            if (fileResponse.IsSuccessStatusCode)
+            {
+                Task.Delay(500);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+
+        _createdAssignment = true;
+
+        _assignmentDto = new AssignmentDTO();
+
+        _referenceFile = null;
+        
+        StateHasChanged();
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        _referenceFile = file;
+    }
+}

@@ -1,0 +1,237 @@
+@page "/studentanalysis/{studentId:int}"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using MudBlazor.Charts
+@using DocumentFormat.OpenXml.Office2010.ExcelAc
+@using EDAI.Client.Components
+@using EDAI.Shared.Exceptions
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.DTO.OpenAI
+@using EDAI.Shared.Models.Entities
+@using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient _Client
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+
+<PageTitle>Student Analysis</PageTitle>
+
+
+<MudGrid Class="linear-loader" Style="height: 100%; align-items: center; justify-content: center;">
+    @if (_hasDataLoaded)
+    {
+
+    <MudItem xs="12">
+        <MudText Typo="Typo.h3" GutterBottom="true">@(_student.FirstName + " " + _student.LastName + ", " + _student.Class)</MudText>
+    </MudItem>
+    <MudItem xs="6" Style="height: 60vh">
+        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center;height: 100%">
+            @if (_hasSummaryLoaded)
+            {
+                <MudText Typo="Typo.h6"> Recommendations</MudText>
+
+                <MudText Style="justify-self: left"> @_studentSummary.Summary </MudText>
+
+                <MudList T="string">
+                    <MudListItem Text="@_studentSummary.FocusArea1"/>
+                    <MudListItem Text="@_studentSummary.FocusArea2"/>
+                    <MudListItem Text="@_studentSummary.FocusArea3"/>
+                </MudList>
+            }
+            else
+            {
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            }
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" Style="height: 60vh">
+        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center; height: 100%">
+            <!--<MudToggleGroup>
+                <MudToggleItem></MudToggleItem>
+                <MudToggleItem></MudToggleItem>
+            </MudToggleGroup>-->
+            <h2>Score progression</h2>
+            <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_series" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12">
+        <MudPaper Elevation="1">
+            <MudDataGrid Items="@_studentAnalysis.EssayAnalysese" ReadOnly="true" ExpandSingleRow="true">
+                <Columns>
+                    <HierarchyColumn T="EssayAnalysisDTO" />
+                    <PropertyColumn Property="e => e.EssayTitle" Title="Essay"/>
+                    <PropertyColumn Property="e => e.Score.OverallScore" Title="Overall"/>
+                    <PropertyColumn Property="e => e.Score.GrammarScore" Title="Grammar"/>
+                    <PropertyColumn Property="e => e.Score.ArgumentationScore" Title="Argumentation"/>
+                    <PropertyColumn Property="e => e.Score.EloquenceScore" Title="Language use"/>
+                    <PropertyColumn Property="e => e.Score.AssignmentAnswerScore" Title="Answer"/>
+                    <PropertyColumn Property="e => e.Score.OverallStructureScore" Title="Structure"/>
+                </Columns>
+                <ChildRowContent>
+                    <MudPaper Class="d-flex flex-row flext-grow-1 gap-5" MaxHeight="40vh">
+                        <MudCard Style="justify-self: left; height: 100%">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">Comments for @context.Item.EssayTitle</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudChart ChartType="ChartType.Donut" InputData="@context.Item.Comments.CountBy(c => c.CommentType).OrderBy(c => c.Key).Select(c => Convert.ToDouble(c.Value)).ToArray()"
+                                          InputLabels="@context.Item.Comments.CountBy(c => c.CommentType).OrderBy(c => c.Key).Select(c => c.Key.ToString()).ToArray()"/>
+                            </MudCardContent>
+                        </MudCard>
+                        <MudCard Style="justify-self: right; height: 100%">
+                            <MudDataGrid T="FeedbackComment" Items="@context.Item.Comments" ReadOnly="true">
+                                <Columns>
+                                    <PropertyColumn Property="c => c.CommentType.ToString()" Title="Type"/>
+                                    <PropertyColumn Property="c => c.CommentFeedback" Title="Feedback"/>
+                                </Columns>
+                            </MudDataGrid>
+                        </MudCard>
+                        
+                    </MudPaper>
+                    
+                </ChildRowContent>
+            </MudDataGrid>
+        </MudPaper>
+    </MudItem>
+    }
+    else
+    {
+    <MudItem xs="12">
+        <MudProgressLinear Color="Color.Dark" Size="Size.Large" Indeterminate="true" Style="width: 60%; justify-self: center;"/>
+    </MudItem>
+    }
+</MudGrid>
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public int studentId { get; set; }
+    
+    private StudentDTO _student;
+
+    private StudentSummaryDTO _studentSummary;
+
+    private StudentAnalysisDTO _studentAnalysis;
+
+    private MudDataGrid<EssayAnalysisDTO> _dataGrid;
+    
+    private HubConnection? _hubConnection;
+
+    private string? _connectionString;
+
+    private bool _hasDataLoaded = false;
+    
+    private bool _hasSummaryLoaded = false;
+
+    private List<ChartSeries> _series;
+
+    private string[] _xAxisLabels;
+
+    private ChartOptions _chartOptions = new ChartOptions
+    {
+        ShowToolTips = true,
+        ShowLabels = false,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+        
+        _student = await _Client.GetFromJsonAsync<StudentDTO>($"Student/{studentId}", options);
+        
+        
+        _studentAnalysis = await _Client.GetFromJsonAsync<StudentAnalysisDTO>($"Analytics/{studentId}", options);
+        
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+            .Build();
+
+        _hubConnection.On<string>("SummaryGenerated", async id =>
+        {
+            int summaryId;
+            Console.WriteLine("Inside method");
+            var success = int.TryParse(id, out summaryId);
+
+            if (!success)
+            {
+                throw new InvalidCastException($"Id candidate {id} could not be parsed to integer");
+            }
+
+            try
+            {
+                _studentSummary = await _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        
+            _hasSummaryLoaded = true;
+        
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+        _connectionString = _hubConnection.ConnectionId;
+        var encodedConnectionString = Uri.EscapeDataString(_connectionString);
+        
+        var response = await _Client.PostAsync($"Student/generateStudentSummary/{studentId}?connectionString={encodedConnectionString}",null);
+
+        /*if (!response.IsSuccessStatusCode!)
+        {
+            Console.WriteLine($"Did not receive successfull status when trying to reach endpoint, instead received {response.StatusCode}");
+            throw new Exception();
+        }*/
+
+
+        _series = new List<ChartSeries>()
+        {
+            new ChartSeries() {Name = "Grammar", Data = _studentAnalysis.EssayAnalysese.Select( ea => ea.Score).Select( s => Convert.ToDouble(s.GrammarScore)).ToArray()},
+            new ChartSeries() {Name = "Argumentation", Data = _studentAnalysis.EssayAnalysese.Select( ea => ea.Score).Select( s => Convert.ToDouble(s.ArgumentationScore)).ToArray()},
+            new ChartSeries() {Name = "Language", Data = _studentAnalysis.EssayAnalysese.Select( ea => ea.Score).Select( s => Convert.ToDouble(s.EloquenceScore)).ToArray()},
+            new ChartSeries() {Name = "Answer", Data = _studentAnalysis.EssayAnalysese.Select( ea => ea.Score).Select( s => Convert.ToDouble(s.AssignmentAnswerScore)).ToArray()},
+            new ChartSeries() {Name = "Structure", Data = _studentAnalysis.EssayAnalysese.Select( ea => ea.Score).Select( s => Convert.ToDouble(s.OverallStructureScore)).ToArray()}
+        };
+
+        _xAxisLabels = _studentAnalysis.EssayAnalysese.Select(ea => ea.EssayId.ToString()).ToArray();
+
+        _hasDataLoaded = true;
+        
+        StateHasChanged();
+    }
+
+    private void HandleSummaryCompletion(string id)
+    {
+        int summaryId;
+        var success = int.TryParse(id, out summaryId);
+
+        if (success!)
+        {
+            throw new InvalidCastException($"Id candidate {id} could not be parsed to integer");
+        }
+
+        _studentSummary = _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}").Result;
+        
+        _hasSummaryLoaded = true;
+        
+        StateHasChanged();
+    }
+
+    
+
+}

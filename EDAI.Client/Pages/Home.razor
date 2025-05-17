@@ -1,20 +1,30 @@
 ﻿@page "/"
-@inject Dictionary<string, object> Configuration
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="logo-container">
+    <div class="svg-container">
+        <svg viewBox="0 -15 200 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Thin top semi-circle -->
+            <path d="M 45 45 A 40 40 0 0 1 155 45" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"/>
 
-Welcome to your new app.
+            <style>
+                .edai-text {
+                    font-family: 'Poppins', sans-serif;
+                    font-weight: 700;
+                    font-size: 32px;
+                    text-anchor: middle;
+                    fill: #333;
+                }
+            </style>
 
-<p>MY_API_KEY Variable: @test1</p>
-<p>HOME Variable: @test2</p>
-<p>Environment: @test3</p>
-@*<p>Appsettings: @Configuration["ApiSettings:ApiKey"]</p>*@
-
-@code
-{
-    private string test1 = Environment.GetEnvironmentVariable("MY_API_KEY");
-    private string test2 = Environment.GetEnvironmentVariable("HOME");
-    private string test3 = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-}
+            <!-- EDAI text -->
+            <text x="100" y="60" class="edai-text">EDAI</text>
+        </svg>
+    </div>    
+    <div>
+        <h5 class="logo-auxilary-text">Your AI-powered reviewer</h5>
+    </div>
+    <MudButton Color="Color.Dark" Variant="Variant.Filled" Class="mt-6">Get Started</MudButton>
+    
+</div>

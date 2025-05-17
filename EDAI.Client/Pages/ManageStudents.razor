@@ -1,0 +1,77 @@
+@page "/manage-students"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using EDAI.Shared.Models
+@using System.Collections.ObjectModel
+@using EDAI.Shared.Models.Entities
+@inject HttpClient _Client
+
+<PageTitle>Manage Students</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Manage Students</MudText>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudDataGrid T="Student" Items="@_students" ReadOnly="false" Dense="false" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" EditTrigger="DataGridEditTrigger.OnRowClick" QuickFilter="_search">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Your Students</MudText>
+                <MudSpacer/>
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+                </MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Class"></PropertyColumn>
+                <PropertyColumn Property="x => x.FirstName"></PropertyColumn>
+                <PropertyColumn Property="x => x.LastName"></PropertyColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T = "Student"/>
+            </PagerContent>
+        </MudDataGrid>
+        <MudButton OnClick="@AddItem" Color="@Color.Success" Class="add-item-btn">Add Student</MudButton>
+    </MudItem>
+</MudGrid>
+
+@code
+{
+    private ObservableCollection<Student> _students;
+
+    private string _searchString;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student", options);
+        
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Assignment", options);
+    }
+    
+    private Func<Student, bool> _search => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (x.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.LastName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.Class.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    };
+
+    void AddItem()
+    {
+        _students.Add(new Student
+        {
+            Class = "Student Class",
+            FirstName = "First Name",
+            LastName = "Last Name"
+        });
+    }
+}
+
+

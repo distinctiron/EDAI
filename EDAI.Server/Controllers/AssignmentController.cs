@@ -1,17 +1,20 @@
-﻿using EDAI.Server.Data;
+﻿using AutoMapper;
+using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models;
+using EDAI.Shared.Models.DTO;
+using EDAI.Shared.Models.Entities;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class AssignmentController(EdaiContext context) : ControllerBase
-{
+public class AssignmentController(EdaiContext context, IMapper _mapper) : ControllerBase
+{   
     [HttpGet(Name = "GetAssignments")]
-    public IEnumerable<Assignment> GetAssignments()
+    public IEnumerable<AssignmentDTO> GetAssignments()
     {
-        return context.Assignments;
+        return _mapper.Map<IEnumerable<AssignmentDTO>>(context.Assignments);
     }
 
     [HttpGet("{id:int}", Name = "GetAssignmentById")]
@@ -22,11 +25,29 @@ public class AssignmentController(EdaiContext context) : ControllerBase
     }
 
     [HttpPost(Name = "AddAssignment")]
-    public IResult AddAssignment(Assignment assignment)
+    public IResult AddAssignment(AssignmentDTO assignment)
     {
-        context.Assignments.Add(assignment);
+        var entity = _mapper.Map<Assignment>(assignment);
+        
+        context.Assignments.Add(entity);
+        
         context.SaveChanges();
-        return Results.Ok(assignment.AssignmentId);
+
+        var students = context.Students.Where(x => assignment.StudentClasses.Contains(x.Class));
+        
+        foreach (var student in students)
+        {
+            context.Essays.Add(new Essay
+            {
+                AssignmentId = entity.AssignmentId,
+                Evaluated = false,
+                Student = student
+            });
+        }
+
+        context.SaveChanges();
+        
+        return Results.Ok(entity.AssignmentId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteAssignment")]
@@ -45,5 +66,42 @@ public class AssignmentController(EdaiContext context) : ControllerBase
         context.Assignments.Update(assignment);
         context.SaveChanges();
         return Results.Ok(assignment);
+    }
+    
+    [HttpPost("{id:int}/uploadDocumentFile", Name = "UploadAssignmentReferenceFile")]
+    public IResult UploadFile([FromRoute]int id, IFormFile file)
+    {
+        var assignment = context.Assignments.Find(id);
+        if (assignment == null) return Results.NotFound();
+        
+        MemoryStream memoryStream = new MemoryStream();
+        file.CopyTo(memoryStream);
+
+        EdaiDocument edaiDocument = new EdaiDocument
+        {
+            DocumentName = file.FileName, DocumentFileExtension = file.FileName.Split(".").Last(),
+            UploadDate = DateTime.Now
+        };
+        edaiDocument.DocumentFile = memoryStream.ToArray();
+
+        context.Documents.Add(edaiDocument);
+        
+        assignment.ReferenceDocument = edaiDocument;
+        context.Assignments.Update(assignment);
+        
+        context.SaveChanges();
+
+        return Results.Ok(assignment);
+    }
+
+    [HttpGet("{id:int}/documentFile", Name = "DownloadAssignmentReferenceFile")]
+    public IResult DownloadFile(int id)
+    {
+        var assignment = context.Assignments.Find(id);
+        if (assignment == null) return Results.NotFound();
+        var document = context.Documents.Find(assignment.ReferenceDocumentId);
+        if (document == null) return Results.NotFound();
+        var bytes = document.DocumentFile!;
+        return Results.File(bytes, "application/octet-stream", document.DocumentName);
     }
 }

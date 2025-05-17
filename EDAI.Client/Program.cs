@@ -1,8 +1,9 @@
 using System.Text.Json;
 using EDAI.Client;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using EDAI.Services;
+using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -17,9 +18,11 @@ var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
 
 // Add configuration as a service
 builder.Services.AddSingleton(config);
+//builder.Services.AddRazorComponents()
+ //   .AddInteractiveWebAssemblyComponents();
+
+builder.Services.AddMudServices();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<WordFileReader>();
-builder.Services.AddScoped<OpenAiService>();
 
 await builder.Build().RunAsync();

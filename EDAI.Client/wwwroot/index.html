@@ -6,19 +6,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EDAI</title>
     <base href="/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="EDAI.styles.css" rel="stylesheet" />
+    <link href="EDAI.Client.styles.css?v=1" rel="stylesheet" />
+    <style>
+        .loader {
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 30px, 0 -30px;
+            border-radius: 4px;
+            background: currentColor;
+            display: block;
+            margin: -50px auto 0;
+            position: relative;
+            color: #000;
+            transform: translateY(30px);
+            box-sizing: border-box;
+            animation: animloader 2s ease infinite;
+        }
+        .loader::after,
+        .loader::before {
+            content: '';
+            box-sizing: border-box;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 30px, 0 -30px;
+            border-radius: 4px;
+            background: currentColor;
+            color: #000;
+            position: absolute;
+            left: 30px;
+            top: 0;
+            animation: animloader 2s 0.2s ease infinite;
+        }
+        .loader::before {
+            animation-delay: 0.4s;
+            left: 60px;
+        }
+
+        @keyframes animloader {
+            0% {
+                top: 0;
+                color: black;
+            }
+            50% {
+                top: 30px;
+                color: rgba(255, 255, 255, 0.8);
+            }
+            100% {
+                top: 0;
+                color: black;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <span class="loader"></span>
+        <div class="loading-progress-text">Loading</div>
     </div>
 
     <div id="blazor-error-ui">
@@ -27,6 +76,32 @@
         <a class="dismiss">🗙</a>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    
+
+    
 </body>
+
+<script>
+    window.downloadFileFromBytes = (fileName, mimeType, base64Data) => {
+        const link = document.createElement('a');
+        link.href = `data:${mimeType};base64,${base64Data}`;
+        link.download = fileName;
+        link.click();
+    };
+    
+    window.downloadFile = (fileName, byteArray) => {
+        const blob = new Blob([new Uint8Array(byteArray)], { type: "application/zip" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+</script>
+
 
 </html>
