@@ -1,12 +1,14 @@
 using EDAI.Shared.Models.Entities;
 
-namespace EDAI.Shared.Models.DTO.OpenAI;
+namespace EDAI.Shared.Models.Entities;
 
 public class StudentSummary
 {
+    public int StudentSummaryId { get; set; }
+    
     public int StudentId { get; set; }
 
-    public Student? Student { get; set; }
+    public Student? Student { get; set; } = null!;
     
     public string Summary { get; set; }
 

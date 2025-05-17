@@ -13,6 +13,10 @@ public class Student
     public string Class { get; set; }
 
     public int StudentClassId { get; set; }
+
+    public StudentClass? StudentClass { get; set; } = null!;
+
+    public ICollection<StudentSummary>? StudentSummaries { get; set; } = new List<StudentSummary>();
     
     public int GraduationYear { get; set; }
 

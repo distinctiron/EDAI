@@ -12,5 +12,5 @@ public interface IOpenAiService
     public Task<string> GetFeedbackAsync(string prompt);
     public Task<float> GetScoreAsync(string prompt);
     public Task<GenerateScoreDTO> AssessEssayAsync();
-    public Task<StudentSummaryDTO> GetStudentSummary(IEnumerable<Score> scores);
+    public Task<StudentSummaryDTO> GenerateStudentSummary(IEnumerable<Score> scores);
 }

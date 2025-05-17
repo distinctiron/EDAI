@@ -1,11 +1,15 @@
 ﻿using AutoMapper;
+using EDAI.Client.Pages;
 using EDAI.Server.Data;
+using EDAI.Server.Jobs;
 using EDAI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
+using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 
@@ -36,14 +40,28 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return student == null ? Results.NotFound() : Results.Ok(student);
     }
     
-    [HttpGet("studentSummary/{id:int}", Name = "GetStudentSummary")]
-    public async Task<IResult> GetStudentSummary(int id)
+    [HttpPost("generateStudentSummary/{id:int}", Name = "GenerateStudentSummary")]
+    public async Task<IResult> GenerateStudentSummary(int id, [FromQuery] string connectionString)
     {
-        var scores = context.Scores.Where(s => s.Essay.StudentId == id);
-        openAiService.InitiateStudentSummaryConversation();
-        var studentSummary = await openAiService.GetStudentSummary(scores);
+        var jobId = BackgroundJob.Enqueue<IGenerateStudentSummaryService>(s => s.GenerateStudentSummaryScore(id, connectionString));
+
+        var response = new
+        {
+            Message = "Student summary is being generated",
+            JobId = jobId
+        };
         
-        return Results.Ok(studentSummary);
+        return Results.Accepted(null,response);
+    }
+    
+    [HttpGet("getStudentSummary/{summaryId:int}", Name = "GetStudentSummary")]
+    public async Task<IResult> GetStudentSummary(int summaryId)
+    {
+        var studentSummary = context.StudentSummaries.Single(s => s.StudentSummaryId == summaryId);
+
+        var studentSummaryDto = mapper.Map<StudentSummaryDTO>(studentSummary);
+        
+        return Results.Ok(studentSummaryDto);
     }
 
     [HttpPost(Name = "AddStudent")]

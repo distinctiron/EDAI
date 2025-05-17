@@ -11,12 +11,24 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace EDAI.Server.Jobs;
 
-public class GenerateStudentSummaryService(EdaiContext context, IOpenAiService openAiService, IHubContext<MessageHub> messageHub) : IGenerateStudentSummaryService
+public class GenerateStudentSummaryService(EdaiContext context, IOpenAiService openAiService, IHubContext<MessageHub> messageHub, IMapper mapper) : IGenerateStudentSummaryService
 {
-    public async Task GenerateStudentSummaryScore(int studentId)
+    public async Task GenerateStudentSummaryScore(int studentId, string connectionString)
     {
         var scores = context.Scores.Where(s => s.Essay.StudentId == studentId);
         openAiService.InitiateStudentSummaryConversation();
-        var studentSummary = await openAiService.GetStudentSummary(scores);
+        var studentSummary = await openAiService.GenerateStudentSummary(scores);
+
+        var entity = mapper.Map<StudentSummary>(studentSummary);
+        entity.StudentId = studentId;
+
+        context.StudentSummaries.Add(entity);
+
+        context.SaveChanges();
+        
+        //await messageHub.Clients.Client(connectionString).SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
+        
+        await messageHub.Clients.All.SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
+        
     }
 }

@@ -27,7 +27,4 @@ public class Score
     public string AssignmentAnswer { get; set; }
     public float AssignmentAnswerScore { get; set; }
     public string AssignmentAnswerRecommendation { get; set; }
-
-    public Guid JobId { get; set; }
-    
 }

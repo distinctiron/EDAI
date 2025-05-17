@@ -48,8 +48,7 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
                 yield return new EssayAnalysisDTO
                 {
                     EssayId = essay.EssayId,
-                    EssayTitle = essay.Document?.DocumentName ?? "Essay Title Missing",
-                    
+                    EssayTitle = context.Documents.Single( d => d.EdaiDocumentId == essay.EdaiDocumentId).DocumentName,
                     Score = context.Scores.Single(s => s.EssayId == essay.EssayId),
                     Comments = context.FeedbackComments.Where(c => c.RelatedTexts.Any(ic => ic.EssayId == essay.EssayId))
                 };

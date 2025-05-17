@@ -23,16 +23,19 @@ builder.Services.AddDbContext<EdaiContext>(options =>
     options.UseSqlite(connectionString)
         .UseSeeding((context, _) =>
         {
+            var studentClass = new StudentClass() { Class = "1C", School = "Katedralskolen" };
+            context.Set<StudentClass>().Add(studentClass);
             var testStudent1 = new Student()
-                { FirstName = "John", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
-            /*var testStudent2 = new Student()
-                { FirstName = "Jane", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
+                { FirstName = "John", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass};
+            var testStudent2 = new Student()
+                { FirstName = "Jane", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass };
             var testStudent3 = new Student()
-                { FirstName = "Ellen", LastName = "Doe", Class = "1C", GraduationYear = 2030 };
-            */context.Set<Student>().Add(testStudent1);
-            //context.Set<Student>().Add(testStudent2);
-            //context.Set<Student>().Add(testStudent3);
+                { FirstName = "Ellen", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass };
+            context.Set<Student>().Add(testStudent1);
+            context.Set<Student>().Add(testStudent2);
+            context.Set<Student>().Add(testStudent3);
             var testAssignment = new Assignment() {Name = "First Assignment", Description = "This is the first assignment.", Open = true};
+            
             context.Set<Assignment>().Add(testAssignment);
             context.SaveChanges();
         }));
@@ -56,6 +59,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddTransient<IWordFileHandlerFactory, WordFileHandlerFactory>();
 builder.Services.AddScoped<IOpenAiService, OpenAiService>();
 builder.Services.AddScoped<IGenerateScoreService, GenerateScoreService>();
+builder.Services.AddScoped<IGenerateStudentSummaryService, GenerateStudentSummaryService>();
 builder.Services.AddControllersWithViews();
     //.AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
 builder.Services.Configure<JsonOptions>(options => options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);

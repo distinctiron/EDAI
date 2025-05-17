@@ -1,7 +1,5 @@
-﻿using EDAI.Shared.Models;
-using EDAI.Shared.Models.Entities;
+﻿using EDAI.Shared.Models.Entities;
 using Microsoft.EntityFrameworkCore;
-using Document = iText.StyledXmlParser.Jsoup.Nodes.Document;
 
 namespace EDAI.Server.Data;
 
@@ -14,6 +12,10 @@ public class EdaiContext : DbContext
     public DbSet<IndexedContent> IndexedContents { get; set; }
     public DbSet<FeedbackComment> FeedbackComments { get; set; }
     public DbSet<EdaiDocument> Documents { get; set; }
+
+    public DbSet<StudentClass> StudentClasses { get; set; }
+
+    public DbSet<StudentSummary> StudentSummaries { get; set; }
     
     public EdaiContext() { }
     

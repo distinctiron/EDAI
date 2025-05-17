@@ -247,7 +247,7 @@ public class OpenAiService : IOpenAiService
             AssignmentAnswerRecommendation = answerArea.Recommendation.Feedback,
             AssignmentAnswerScore = answerArea.Score.Score,
             OverallScore = (grammarArea.Score.Score + eloquenceArea.Score.Score + argumentationArea.Score.Score 
-                           + structureArea.Score.Score + answerArea.Score.Score) * 0.2f
+                           + structureArea.Score.Score + answerArea.Score.Score) / 5.0f
 
         };
         
@@ -314,7 +314,7 @@ public class OpenAiService : IOpenAiService
         };
     }
 
-    public async Task<StudentSummaryDTO> GetStudentSummary(IEnumerable<Score> scores)
+    public async Task<StudentSummaryDTO> GenerateStudentSummary(IEnumerable<Score> scores)
     {
         var input = JsonConvert.SerializeObject(scores);
         

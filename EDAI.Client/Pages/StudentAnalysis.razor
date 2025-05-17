@@ -122,6 +122,10 @@
     private StudentAnalysisDTO _studentAnalysis;
 
     private MudDataGrid<EssayAnalysisDTO> _dataGrid;
+    
+    private HubConnection? _hubConnection;
+
+    private string? _connectionString;
 
     private bool _hasDataLoaded = false;
     
@@ -146,8 +150,53 @@
         };
         
         _student = await _Client.GetFromJsonAsync<StudentDTO>($"Student/{studentId}", options);
-
+        
+        
         _studentAnalysis = await _Client.GetFromJsonAsync<StudentAnalysisDTO>($"Analytics/{studentId}", options);
+        
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+            .Build();
+
+        _hubConnection.On<string>("SummaryGenerated", async id =>
+        {
+            int summaryId;
+            Console.WriteLine("Inside method");
+            var success = int.TryParse(id, out summaryId);
+
+            if (!success)
+            {
+                throw new InvalidCastException($"Id candidate {id} could not be parsed to integer");
+            }
+
+            try
+            {
+                _studentSummary = await _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        
+            _hasSummaryLoaded = true;
+        
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+        _connectionString = _hubConnection.ConnectionId;
+        var encodedConnectionString = Uri.EscapeDataString(_connectionString);
+        
+        var response = await _Client.PostAsync($"Student/generateStudentSummary/{studentId}?connectionString={encodedConnectionString}",null);
+
+        /*if (!response.IsSuccessStatusCode!)
+        {
+            Console.WriteLine($"Did not receive successfull status when trying to reach endpoint, instead received {response.StatusCode}");
+            throw new Exception();
+        }*/
 
 
         _series = new List<ChartSeries>()
@@ -164,10 +213,23 @@
         _hasDataLoaded = true;
         
         StateHasChanged();
-        
-        _studentSummary = await _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/studentSummary/{studentId}", options);
+    }
+
+    private void HandleSummaryCompletion(string id)
+    {
+        int summaryId;
+        var success = int.TryParse(id, out summaryId);
+
+        if (success!)
+        {
+            throw new InvalidCastException($"Id candidate {id} could not be parsed to integer");
+        }
+
+        _studentSummary = _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}").Result;
         
         _hasSummaryLoaded = true;
+        
+        StateHasChanged();
     }
 
     

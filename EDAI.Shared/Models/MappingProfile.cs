@@ -18,5 +18,7 @@ public class MappingProfile : Profile
         CreateMap<StudentDTO, Student>();
         CreateMap<BaseComment, CommentDTO>();
         CreateMap<CommentDTO, BaseComment>();
+        CreateMap<StudentSummaryDTO, StudentSummary>();
+        CreateMap<StudentSummary, StudentSummaryDTO>();
     }
 }
