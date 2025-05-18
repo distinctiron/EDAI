@@ -45,6 +45,7 @@ public static class TextEvaluatingPrompts
                  "\"You need commas to separate items in a list. Correct it to: ‘I like apples, oranges, and bananas.’\"\n\nFinal Notes:" +
                  "\nEach comment should refer to a specific mistake in the essay.\nKeep feedback short and direct. " +
                  "Young students should be able to understand and apply the corrections easily.\nUse simple, easy-to-follow language." +
+                 "\nDo not correct grammar of text within quotation marks, as this text comes from the reference text"
                  "\nDo not overwhelm the student – only correct key mistakes that impact clarity." +
                  "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
@@ -75,15 +76,16 @@ public static class TextEvaluatingPrompts
                  "provide a concise comment next to the issue.\nBe brief and clear – Each comment should be 1-2 sentences long and easy for " +
                  "a 15-17-year-old student to understand.\nExplain the problem and suggest an improvement.\nDo not give a score – " +
                  "Focus only on formative feedback that helps the student strengthen their reasoning.\nExamples of Concise Argument Feedback:" +
-                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character seems to be in a bad place.\"\n\ud83d\udd39 Comment: " +
-                 "\"Try explaining why the main character seems to be in a bad place, include a quotation from the reference text to back up your point. \"" +
+                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character is bad.\"\n\ud83d\udd39 Comment: " +
+                 "\"Try explaining why the main character seems to be bad, include a quotation from the reference text to back up your point. \"" +
                  "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"The setting enhances the message of the short story"" +
                  "\n\ud83d\udd39 Comment: \"This analytical point needs to be substantiated. Instead of merely postulating, insert a quotation from the reference"+
-                 "text, and an explanation in which you explain how the quotation proves the point " +
+                 "text, and an explanation in which you explain how the quotation proves the point " + 
                  "\n\nFinal Notes:" +
                  "\nEach comment should refer to a specific sentence or part of the essay.\nKeep feedback short and direct so that young " +
                  "students can easily understand and apply it.\nUse simple, clear language to help students improve their arguments step by step." +
-                 "\nEncourage deeper reasoning, better structure, and the use of examples.\n"+
+                 "\nEncourage deeper reasoning, better structure, and the use of examples."+
+                 "\nYou cannot comment on one sentence in isolation. But must always take into account the content of the sentences of the paragraph."
                  "\nFor all the comments you must also provide the text which they relate to in the property RelatedText and the comment itself must be provided in the property CommentFeedback");
 
     public static readonly Text ProvideAssignmentAnswerFeedback =
@@ -95,7 +97,8 @@ public static class TextEvaluatingPrompts
                  "\nRead the student’s essay and compare it to the assignment description." +
                  "\nWrite one clear, helpful comment (5-7 sentences) that does the following:" +
                  "\nPoint out what the student did well in answering the assignment." +
-                 "\nMention if any parts of the assignment were missed, incomplete, or off-topic." +
+                 "\nMention if any parts of the assignment were missed, incomplete, or off-topic." +"e.g. did the student make references to the text analysed in their"+
+                 "main body, as the assignment description requires"+
                  "\nExplain these gaps in simple terms, using examples where possible." +
                  "\nOffer practical advice on how to improve when answering future assignments." +
                  "\nUse positive, supportive, and simple language that is easy for 15-17-year-old students (including non-native speakers) to " +
@@ -105,7 +108,7 @@ public static class TextEvaluatingPrompts
                  "\nDo not begin with thanking the student for submitting their essay"
                  "\nExample AI Output:" +
                  "\n“You have written an essay in which it is evident that you have good understandig of the short story analysed, and a good grasp on"+
-                 "the writing genre, the analytical essay. However the assignment asked you to focus on the character's relationship in the short story,"+
+                 "the writing genre, the analytical essay. However the assignment asked you to focus on the characters' relationship in the short story,"+
                  "so it would have been better if you had focused more on this in your essay" +
                  "Next time, it’s a good idea to read the assignment description slowly before you start and check when you finish if you’ve answered everything " +
                  "it asks. You’re on the right track—keep practicing!”" +
@@ -251,7 +254,7 @@ public static class TextEvaluatingPrompts
                  "\n\nThe essay lacks any coherent arguments." +
                  "\nIt may be off-topic, nonsensical, or purely opinion-based without structure." +
                  "\nThere is no attempt to justify claims with logic or evidence." +
-                 "\nExample: An analytical essay with an absent thesis statement and no relvant analysis." +
+                 "\nExample: An analytical essay with an absent thesis statement and no relevant analysis." +
                  "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
                  "\nInstructions for Scoring:" +
                  "\nAssign a score between 0 and 5 based on the criteria above." +
@@ -429,7 +432,7 @@ public static class TextEvaluatingPrompts
                  "\nIdentify the specific weaknesses in their analytical argumentation based on the comments and score." +
                  "\nExamples of issues to look for:" +
                  "\nUnclear reasons (e.g., “It is good because it is good.”)" +
-                 "\nLack of examples (e.g.,the main character is unhappy)" +
+                 "\nLack of examples (e.g.,"the main character is unhappy)" +
                  "\nWeak or missing explanations (e.g.the main character seems to be in a bad place)" +
                  "\nLack of counterarguments (e.g., not considering other points of view)." +
                  "\nOutput your response in two clear parts:" +
@@ -460,7 +463,6 @@ public static class TextEvaluatingPrompts
                  "\nThe conflict of the story is unrequitted love, this becomes evident in the text when…" +
                  "\nExercise 2 – Add an Example:" +
                  "\nRewrite this sentence with a real or made-up example:" +
-                 "\n\n“Homework is stressful.” \u2192 Try adding: “For example, I had 3 hours of homework last night and couldn’t " +
                  "watch my favorite show.”" +
                  "\nExercise 3 – Respond to a Different Opinion:" +
                  "\nImagine someone says: “Homework is good because it helps you learn.”" +
@@ -547,9 +549,9 @@ public static class TextEvaluatingPrompts
 
     public static string ProvideAssignmentContextPrompt(string assignmentDescription, string referenceText = null)
     {
-        var prompt = "The description for the assignment you are about to assess and correct is the following: " +
+        var prompt = "The description for the assignment you are about to assess and correct is the following: "+
                      "\n" + assignmentDescription;
-        
+         
         if (referenceText is not null)
         {
             prompt += "\n The assignment also has the following reference text which should be used in the essay: \n" + referenceText;
