@@ -397,14 +397,14 @@ public class OpenAiService : IOpenAiService
         switch (area)
         {
             case FeedbackType.Structure:
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideGrammarComments.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendation.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammar.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideStructureFeedback.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEssayStructureRecommendation.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEssayStructure.Prompt;
                 break;
             case FeedbackType.AssignmentAnswer:
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideEloquenceComments.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendation.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquence.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideAssignmentAnswerFeedback.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveAssignmentAnswerRecommendation.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreAssignmentAnswer.Prompt;
                 break;
             default:
                 throw new Exception("Invalid Area Type");

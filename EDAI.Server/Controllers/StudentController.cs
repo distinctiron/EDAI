@@ -64,6 +64,14 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return Results.Ok(studentSummaryDto);
     }
 
+    [HttpGet("getClassName/{classId:int}", Name = "GetClassName")]
+    public IResult GetClassName(int classId)
+    {
+        var studentClass = context.StudentClasses.Single(c => c.StudentClassId == classId);
+
+        return Results.Ok(studentClass.Class + ", " + studentClass.School);
+    }
+
     [HttpPost(Name = "AddStudent")]
     public IResult AddStudent(Student student)
     {

@@ -1,0 +1,204 @@
+@page "/classanalysis/{classId:int}"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using MudBlazor.Charts
+@using DocumentFormat.OpenXml.Office2010.ExcelAc
+@using EDAI.Client.Components
+@using EDAI.Shared.Exceptions
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.DTO.OpenAI
+@using EDAI.Shared.Models.Entities
+@using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient _Client
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+
+<PageTitle>Class Analysis</PageTitle>
+
+
+<MudGrid Class="linear-loader" Style="height: 100%; align-items: center; justify-content: center;">
+    @if (_hasDataLoaded)
+    {
+
+    <MudItem xs="12">
+        <MudText Typo="Typo.h3" GutterBottom="true">@(className)</MudText>
+    </MudItem>
+    <MudItem xs="6" Style="height: 60vh">
+        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center;height: 100%">
+            <MudText Typo="Typo.h5">Score Distribution</MudText>
+            <MudChart ChartType="ChartType.Bar" ChartSeries="@_barSeries" XAxisLabels="_barXAxisLabels" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" Style="height: 60vh">
+        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center; height: 100%">
+            <!--<MudToggleGroup>
+                <MudToggleItem></MudToggleItem>
+                <MudToggleItem></MudToggleItem>
+            </MudToggleGroup>-->
+            <MudText Typo="Typo.h5">Score Progression</MudText>
+            <MudChart ChartType="ChartType.HeatMap" ChartSeries="@_heatSeries" XAxisLabels="_heatXAxisLabels" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12">
+        <MudPaper Elevation="1">
+            <MudDataGrid Items="@_classAnalysis.StudentAnalysisDtos" ReadOnly="true" ExpandSingleRow="true">
+                <Columns>
+                    <HierarchyColumn T="EssayAnalysisDTO"/>
+                    <PropertyColumn Property="s => (s.FirstName + ' ' + s.LastName)" Title="Student"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallScore)" Title="Average Overall Score"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.GrammarScore)" Title="Average Grammar Score"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.ArgumentationScore)" Title="Average Argumentation Score"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.EloquenceScore)" Title="Average Eloquence Score"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.AssignmentAnswerScore)" Title="Average Assignment Answer Score"/>
+                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallStructureScore)" Title="Average Structure Score"/>
+                    <TemplateColumn>
+                        <CellTemplate>
+                            <MudIconButton Icon="@Icons.Material.Outlined.Analytics" OnClick="@(()=> Navigation.NavigateTo($"/studentanalysis/{context.Item.StudentId}"))" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <!--
+                <ChildRowContent>
+                    <MudPaper Class="d-flex flex-row flext-grow-1 gap-5" MaxHeight="40vh">
+                        <MudCard Style="justify-self: left; height: 100%">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">Comments for @context.Item.EssayTitle</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudChart ChartType="ChartType.Donut" InputData="@context.Item.Comments.CountBy(c => c.CommentType).OrderBy(c => c.Key).Select(c => Convert.ToDouble(c.Value)).ToArray()"
+                                          InputLabels="@context.Item.Comments.CountBy(c => c.CommentType).OrderBy(c => c.Key).Select(c => c.Key.ToString()).ToArray()"/>
+                            </MudCardContent>
+                        </MudCard>
+                        <MudCard Style="justify-self: right; height: 100%">
+                            <MudDataGrid T="FeedbackComment" Items="@context.Item.Comments" ReadOnly="true">
+                                <Columns>
+                                    <PropertyColumn Property="c => c.CommentType.ToString()" Title="Type"/>
+                                    <PropertyColumn Property="c => c.CommentFeedback" Title="Feedback"/>
+                                </Columns>
+                            </MudDataGrid>
+                        </MudCard>
+
+                    </MudPaper>
+
+                </ChildRowContent>-->
+            </MudDataGrid>-
+        </MudPaper>
+    </MudItem>
+    }
+    else
+    {
+    <MudItem xs="12">
+        <MudProgressLinear Color="Color.Dark" Size="Size.Large" Indeterminate="true" Style="width: 60%; justify-self: center;"/>
+    </MudItem>
+    }
+</MudGrid>
+
+
+
+
+
+@code {
+    [Parameter] 
+    public int classId { get; set; }
+
+    public string className;
+
+    public ClassAnalysisDTO _classAnalysis;
+
+    private bool _hasDataLoaded = false;
+
+    private List<ChartSeries> _barSeries;
+
+    private string[] _barXAxisLabels = {"0", "1", "2", "3", "4", "5"};
+
+    private List<ChartSeries> _heatSeries;
+
+    private string[] _heatXAxisLabels;
+    
+    private ChartOptions _chartOptions = new ChartOptions
+    {
+        ShowToolTips = true,
+        ShowLabels = false,
+    };
+
+    private AxisChartOptions _axisChartOptions = new AxisChartOptions();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        try
+        {
+            className = await _Client.GetFromJsonAsync<string>($"Student/getClassName/{classId}", options);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+        try
+        {
+            _classAnalysis = await _Client.GetFromJsonAsync<ClassAnalysisDTO>($"Analytics/class/{classId}", options);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+       
+
+        _barSeries = new List<ChartSeries>()
+        {
+            new ChartSeries() { Name = "Grammar", Data = new double[] {_classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 0.0f), 
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 1.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 2.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 3.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 4.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.GrammarScore == 5.0f),
+            } },
+            new ChartSeries() { Name = "Argumentation", Data = new double[] {_classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 0.0f), 
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 1.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 2.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 3.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 4.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.ArgumentationScore == 5.0f),
+            } },
+            new ChartSeries() { Name = "Language", Data = new double[] {_classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 0.0f), 
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 1.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 2.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 3.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 4.0f),
+                _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).Count(e => e.Score.EloquenceScore == 5.0f),
+            } }
+        };
+
+        _heatXAxisLabels = _classAnalysis.StudentAnalysisDtos.SelectMany(s => s.EssayAnalysese).OrderBy(e => e.EssayId).Select(e => e.AssignmentName).ToArray();
+
+        _heatSeries = new List<ChartSeries>();
+
+        foreach (var studentAnalysisDto in _classAnalysis.StudentAnalysisDtos)
+        {
+            _heatSeries.Add(new ChartSeries()
+            {
+                Name = studentAnalysisDto.FirstName + " " + studentAnalysisDto.LastName,
+                Data = studentAnalysisDto.EssayAnalysese.Select(e => (double) e.Score.OverallScore).ToArray()
+            });
+        }
+
+        _hasDataLoaded = true;
+
+    }
+
+    
+
+}
