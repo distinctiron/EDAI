@@ -1,4 +1,4 @@
-@page "/classanalysis/{classId:int}"
+@page "/classanalysis"
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using MudBlazor.Charts
@@ -20,47 +20,64 @@
 
 
 <MudGrid Class="linear-loader" Style="height: 100%; align-items: center; justify-content: center;">
-    @if (_hasDataLoaded)
-    {
+    
+    <MudItem xs="12" Style="display: flex;justify-items: flex-end; margin-bottom: auto">
+        @if (_classSelected)
+        {
+            <MudItem xs="9" Style="justify-self: left">
 
-    <MudItem xs="12">
-        <MudText Typo="Typo.h3" GutterBottom="true">@(className)</MudText>
+                <MudText Typo="Typo.h3" GutterBottom="true">@(_class.Class + ", " + _class.School)</MudText>
+            </MudItem>
+
+        }
+        <MudItem xs="3" Style="justify-self: flex-end; align-self: flex-start; margin-left: auto;">
+            <MudSelect T="StudentClassDTO" Variant="Variant.Outlined" ValueChanged="OnValuesChanged" Label="Select Class" FitContent="false">
+                @foreach (var studentClass in _classes)
+                {
+                    <MudSelectItem Value="studentClass">@studentClass.Class</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
     </MudItem>
-    <MudItem xs="6" Style="height: 60vh">
-        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center;height: 100%">
-            <MudText Typo="Typo.h5">Score Distribution</MudText>
-            <MudChart ChartType="ChartType.Bar" ChartSeries="@_barSeries" XAxisLabels="_barXAxisLabels" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" Style="height: 60vh">
-        <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center; height: 100%">
-            <!--<MudToggleGroup>
-                <MudToggleItem></MudToggleItem>
-                <MudToggleItem></MudToggleItem>
-            </MudToggleGroup>-->
-            <MudText Typo="Typo.h5">Score Progression</MudText>
-            <MudChart ChartType="ChartType.HeatMap" ChartSeries="@_heatSeries" XAxisLabels="_heatXAxisLabels" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12">
-        <MudPaper Elevation="1">
-            <MudDataGrid Items="@_classAnalysis.StudentAnalysisDtos" ReadOnly="true" ExpandSingleRow="true">
-                <Columns>
-                    <HierarchyColumn T="EssayAnalysisDTO"/>
-                    <PropertyColumn Property="s => (s.FirstName + ' ' + s.LastName)" Title="Student"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallScore)" Title="Average Overall Score"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.GrammarScore)" Title="Average Grammar Score"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.ArgumentationScore)" Title="Average Argumentation Score"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.EloquenceScore)" Title="Average Eloquence Score"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.AssignmentAnswerScore)" Title="Average Assignment Answer Score"/>
-                    <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallStructureScore)" Title="Average Structure Score"/>
-                    <TemplateColumn>
-                        <CellTemplate>
-                            <MudIconButton Icon="@Icons.Material.Outlined.Analytics" OnClick="@(()=> Navigation.NavigateTo($"/studentanalysis/{context.Item.StudentId}"))" />
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-                <!--
+    @if (_classSelected && !_hasDataLoaded)
+    {
+        <MudItem xs="12">
+            <MudProgressLinear Color="Color.Dark" Size="Size.Large" Indeterminate="true" Style="width: 60%; justify-self: center;"/>
+        </MudItem>
+    }
+    else if (_classSelected && _hasDataLoaded)
+    {
+        <MudItem xs="6" Style="height: 60vh">
+            <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center;height: 100%">
+                <MudText Typo="Typo.h5">Score Distribution</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@_barSeries" XAxisLabels="_barXAxisLabels" LegendPosition="Position.Bottom" ChartOptions="_chartOptions"/>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" Style="height: 60vh">
+            <MudPaper Elevation="1" Class="pa-5" Style="justify-items: center; justify-content: center; height: 100%">
+                <MudText Typo="Typo.h5">Score Progression</MudText>
+                <MudChart ChartType="ChartType.HeatMap" ChartSeries="@_heatSeries" XAxisLabels="_heatXAxisLabels" LegendPosition="Position.Bottom" AxisChartOptions="_heatAxisChartOptions" ChartOptions="_chartOptions"/>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Elevation="1">
+                <MudDataGrid Items="@_classAnalysis.StudentAnalysisDtos" ReadOnly="true" ExpandSingleRow="true">
+                    <Columns>
+                        <HierarchyColumn T="EssayAnalysisDTO"/>
+                        <PropertyColumn Property="s => (s.FirstName + ' ' + s.LastName)" Title="Student"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallScore)" Title="Average Overall Score"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.GrammarScore)" Title="Average Grammar Score"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.ArgumentationScore)" Title="Average Argumentation Score"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.EloquenceScore)" Title="Average Eloquence Score"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.AssignmentAnswerScore)" Title="Average Assignment Answer Score"/>
+                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallStructureScore)" Title="Average Structure Score"/>
+                        <TemplateColumn>
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Outlined.Analytics" OnClick="@(()=> Navigation.NavigateTo($"/studentanalysis/{context.Item.StudentId}"))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <!--
                 <ChildRowContent>
                     <MudPaper Class="d-flex flex-row flext-grow-1 gap-5" MaxHeight="40vh">
                         <MudCard Style="justify-self: left; height: 100%">
@@ -86,16 +103,15 @@
                     </MudPaper>
 
                 </ChildRowContent>-->
-            </MudDataGrid>-
-        </MudPaper>
-    </MudItem>
+                </MudDataGrid>-
+            </MudPaper>
+        </MudItem>
+        
     }
-    else
-    {
-    <MudItem xs="12">
-        <MudProgressLinear Color="Color.Dark" Size="Size.Large" Indeterminate="true" Style="width: 60%; justify-self: center;"/>
-    </MudItem>
-    }
+    
+    
+    
+    
 </MudGrid>
 
 
@@ -103,22 +119,26 @@
 
 
 @code {
-    [Parameter] 
-    public int classId { get; set; }
 
-    public string className;
+    private StudentClassDTO _class = new StudentClassDTO();
 
-    public ClassAnalysisDTO _classAnalysis;
+    private IEnumerable<StudentClassDTO> _classes = new List<StudentClassDTO>();
+
+    //private string _className;
+
+    private ClassAnalysisDTO _classAnalysis = new ClassAnalysisDTO();
 
     private bool _hasDataLoaded = false;
 
-    private List<ChartSeries> _barSeries;
+    private bool _classSelected = false;
+
+    private List<ChartSeries> _barSeries = new List<ChartSeries>();
 
     private string[] _barXAxisLabels = {"0", "1", "2", "3", "4", "5"};
 
-    private List<ChartSeries> _heatSeries;
+    private List<ChartSeries> _heatSeries = new List<ChartSeries>();
 
-    private string[] _heatXAxisLabels;
+    private string[] _heatXAxisLabels = {};
     
     private ChartOptions _chartOptions = new ChartOptions
     {
@@ -126,29 +146,48 @@
         ShowLabels = false,
     };
 
-    private AxisChartOptions _axisChartOptions = new AxisChartOptions();
-    
-    protected override async Task OnInitializedAsync()
+    private AxisChartOptions _heatAxisChartOptions = new AxisChartOptions
     {
+        XAxisLabelRotation = 180,
+    };
+
+    private AxisChartOptions _axisChartOptions = new AxisChartOptions();
+
+    protected async Task OnValuesChanged(StudentClassDTO classDto)
+    {
+        if (classDto is null)
+        {
+            _classSelected = false;
+            return;
+        }
+
+        _classSelected = true;
+        
+        StateHasChanged();
+        
+        _class = classDto;
+        
         var options = new JsonSerializerOptions()
         {
             ReferenceHandler = ReferenceHandler.Preserve,
             PropertyNameCaseInsensitive = true
         };
+        
+        /*
 
         try
         {
-            className = await _Client.GetFromJsonAsync<string>($"Student/getClassName/{classId}", options);
+            _className = await _Client.GetFromJsonAsync<string>($"Student/getClassName/{_class.StudentClassId}", options);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             throw;
-        }
+        }*/
 
         try
         {
-            _classAnalysis = await _Client.GetFromJsonAsync<ClassAnalysisDTO>($"Analytics/class/{classId}", options);
+            _classAnalysis = await _Client.GetFromJsonAsync<ClassAnalysisDTO>($"Analytics/class/{_class.StudentClassId}", options);
         }
         catch (Exception e)
         {
@@ -196,6 +235,19 @@
         }
 
         _hasDataLoaded = true;
+
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        _classes = await _Client.GetFromJsonAsync<IEnumerable<StudentClassDTO>>("Student/getClasses", options);
+
 
     }
 

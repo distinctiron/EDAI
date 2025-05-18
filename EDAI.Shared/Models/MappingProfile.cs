@@ -20,5 +20,7 @@ public class MappingProfile : Profile
         CreateMap<CommentDTO, BaseComment>();
         CreateMap<StudentSummaryDTO, StudentSummary>();
         CreateMap<StudentSummary, StudentSummaryDTO>();
+        CreateMap<StudentClassDTO, StudentClass>();
+        CreateMap<StudentClass,StudentClassDTO>();
     }
 }

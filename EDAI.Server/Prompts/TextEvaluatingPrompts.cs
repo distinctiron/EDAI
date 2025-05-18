@@ -77,7 +77,7 @@ public static class TextEvaluatingPrompts
                  "Focus only on formative feedback that helps the student strengthen their reasoning.\nExamples of Concise Argument Feedback:" +
                  "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character seems to be in a bad place.\"\n\ud83d\udd39 Comment: " +
                  "\"Try explaining why the main character seems to be in a bad place, include a quotation from the reference text to back up your point. \"" +
-                 "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"The setting enhances the message of the short story"" +
+                 "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"The setting enhances the message of the short story" +
                  "\n\ud83d\udd39 Comment: \"This analytical point needs to be substantiated. Instead of merely postulating, insert a quotation from the reference"+
                  "text, and an explanation in which you explain how the quotation proves the point " +
                  "\n\nFinal Notes:" +
@@ -102,9 +102,9 @@ public static class TextEvaluatingPrompts
                  "understand." +
                  "\nYour focus should be on the assignment description and the essay. Do not go into detail about grammatical mistakes"+
                  "\nAvoid giving a score or formal evaluation structure – the comment should feel natural and encouraging." +
-                 "\nDo not begin with thanking the student for submitting their essay"
+                 "\nDo not begin with thanking the student for submitting their essay" +
                  "\nExample AI Output:" +
-                 "\n“You have written an essay in which it is evident that you have good understandig of the short story analysed, and a good grasp on"+
+                 "\nYou have written an essay in which it is evident that you have good understandig of the short story analysed, and a good grasp on"+
                  "the writing genre, the analytical essay. However the assignment asked you to focus on the character's relationship in the short story,"+
                  "so it would have been better if you had focused more on this in your essay" +
                  "Next time, it’s a good idea to read the assignment description slowly before you start and check when you finish if you’ve answered everything " +
@@ -166,7 +166,7 @@ public static class TextEvaluatingPrompts
                  "\nErrors sometimes cause confusion or interrupt the flow of the text.\n1 – Poor\n\nMany mistakes in almost every sentence." +
                  "\nErrors make the text hard to read and understand.\n0 – Very Poor\n\nConstant grammar mistakes in nearly every sentence." +
                  "\nThe text is often unclear or requires guessing to understand." +
-                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
+                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4" +
                  "\nOutput Requirement:" +
                  "\nOutput only a single number from 0 to 5." +
                  "\nDo not provide explanations or comments." +
@@ -205,7 +205,7 @@ public static class TextEvaluatingPrompts
                  "\n\nThe essay is extremely difficult to read and understand." +
                  "\nIdeas are fragmented, and there is little to no logical flow." +
                  "\nWord choice is extremely basic or often incorrect." +
-                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
+                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4" +
                  "\nOutput Requirement:" +
                  "\nOutput only a single number from 0 to 5." +
                  "\nDo not provide explanations or comments." +
@@ -252,7 +252,7 @@ public static class TextEvaluatingPrompts
                  "\nIt may be off-topic, nonsensical, or purely opinion-based without structure." +
                  "\nThere is no attempt to justify claims with logic or evidence." +
                  "\nExample: An analytical essay with an absent thesis statement and no relvant analysis." +
-                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
+                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4" +
                  "\nInstructions for Scoring:" +
                  "\nAssign a score between 0 and 5 based on the criteria above." +
                  "\nOutput Requirement:" +
@@ -289,7 +289,7 @@ public static class TextEvaluatingPrompts
                  "\n0 – Very Poor" +
                  "\n\nThe essay completely misses the assignment." +  
                  "\nIt is off topic or irrelevant to the given task." +
-                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
+                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4" +
                  "\nOutput Requirement:" +
                  "\nOutput only a single number from 0 to 5." +
                  "\nDo not provide explanations or comments." +
@@ -328,7 +328,7 @@ public static class TextEvaluatingPrompts
                  "\n0 – Very Poor" +
                  "\n\nThere is no visible structure." +
                  "\nThe text is fragmented, unordered, and does not resemble an analytical essay." +
-                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
+                 "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4" +
                  "\nOutput Requirement:" +
                  "\nOutput only a single number from 0 to 5." +
                  "\nDo not provide explanations or comments." +
@@ -456,7 +456,7 @@ public static class TextEvaluatingPrompts
                  "\n\nPart 2: Targeted Exercises" +
                  "\nExercise 1 – Give Reasons:" +
                  "\nFinish these sentences by explaining why:" +
-                 "\n\The main charatcer seems sad because…" +
+                 "\nThe main charatcer seems sad because…" +
                  "\nThe conflict of the story is unrequitted love, this becomes evident in the text when…" +
                  "\nExercise 2 – Add an Example:" +
                  "\nRewrite this sentence with a real or made-up example:" +

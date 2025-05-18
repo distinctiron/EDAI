@@ -71,6 +71,14 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
 
         return Results.Ok(studentClass.Class + ", " + studentClass.School);
     }
+    
+    [HttpGet("getClasses", Name = "GetClasses")]
+    public IResult GetClasses()
+    {
+        var studentClasses = mapper.Map<IEnumerable<StudentClassDTO>>(context.StudentClasses) ;
+
+        return Results.Ok(studentClasses);
+    }
 
     [HttpPost(Name = "AddStudent")]
     public IResult AddStudent(Student student)

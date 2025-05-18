@@ -1,4 +1,5 @@
-﻿@using iText.StyledXmlParser.Jsoup.Select
+﻿@using EDAI.Client.Components
+@using iText.StyledXmlParser.Jsoup.Select
 @inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -6,11 +7,11 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudAppBar Elevation="0" Color="Color.Transparent" Style="border-bottom: none; box-shadow: none;">
+    <MudAppBar Elevation="0" Color="Color.Transparent" Fixed="false" Style="border-bottom: none; box-shadow: none;">
         <MudText Href="" Typo="Typo.h6" Class="ml-3">EDAI</MudText>
         <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Review</MudNavLink>
-        <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
-        <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Configure</MudNavLink>
+        <MudNavLink Href="classanalysis" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
+        <MudNavLink Href="docs" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Docs</MudNavLink>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
     </MudAppBar>
@@ -30,6 +31,7 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode = false;
     private MudTheme? _theme = null;
+    
 
     protected override void OnInitialized()
     {

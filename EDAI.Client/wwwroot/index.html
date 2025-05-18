@@ -77,16 +77,6 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script>
-        let lastScrollTop = 0;
-        window.addEventListener('scroll', () => {
-            const st = window.pageYOffset || document.documentElement.scrollTop;
-            const direction = st > lastScrollTop ? "down" : "up";
-            lastScrollTop = st <= 0 ? 0 : st;
-
-            DotNet.invokeMethodAsync('EDAI.Client', 'OnScrollDirectionChanged', direction);
-        });
-    </script>
     
 
     
