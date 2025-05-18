@@ -76,8 +76,8 @@ public static class TextEvaluatingPrompts
                  "provide a concise comment next to the issue.\nBe brief and clear – Each comment should be 1-2 sentences long and easy for " +
                  "a 15-17-year-old student to understand.\nExplain the problem and suggest an improvement.\nDo not give a score – " +
                  "Focus only on formative feedback that helps the student strengthen their reasoning.\nExamples of Concise Argument Feedback:" +
-                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character seems to be in a bad place.\"\n\ud83d\udd39 Comment: " +
-                 "\"Try explaining why the main character seems to be in a bad place, include a quotation from the reference text to back up your point. \"" +
+                 "\n1. Clarity Issue\n\ud83d\udcdd Sentence: \"The main character is bad.\"\n\ud83d\udd39 Comment: " +
+                 "\"Try explaining why the main character seems to be bad, include a quotation from the reference text to back up your point. \"" +
                  "\n\n2. Logical Structure Issue\n\ud83d\udcdd Sentence: \"The setting enhances the message of the short story"" +
                  "\n\ud83d\udd39 Comment: \"This analytical point needs to be substantiated. Instead of merely postulating, insert a quotation from the reference"+
                  "text, and an explanation in which you explain how the quotation proves the point " + 
@@ -254,7 +254,7 @@ public static class TextEvaluatingPrompts
                  "\n\nThe essay lacks any coherent arguments." +
                  "\nIt may be off-topic, nonsensical, or purely opinion-based without structure." +
                  "\nThere is no attempt to justify claims with logic or evidence." +
-                 "\nExample: An analytical essay with an absent thesis statement and no relvant analysis." +
+                 "\nExample: An analytical essay with an absent thesis statement and no relevant analysis." +
                  "\nmake use of the entire scale, and refrain from only using the scores 2,3 and 4"
                  "\nInstructions for Scoring:" +
                  "\nAssign a score between 0 and 5 based on the criteria above." +
