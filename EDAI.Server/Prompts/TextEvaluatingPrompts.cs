@@ -97,7 +97,8 @@ public static class TextEvaluatingPrompts
                  "\nRead the student’s essay and compare it to the assignment description." +
                  "\nWrite one clear, helpful comment (5-7 sentences) that does the following:" +
                  "\nPoint out what the student did well in answering the assignment." +
-                 "\nMention if any parts of the assignment were missed, incomplete, or off-topic." +
+                 "\nMention if any parts of the assignment were missed, incomplete, or off-topic." +"e.g. did the student make references to the text analysed in their"+
+                 "main body, as the assignment description requires"+
                  "\nExplain these gaps in simple terms, using examples where possible." +
                  "\nOffer practical advice on how to improve when answering future assignments." +
                  "\nUse positive, supportive, and simple language that is easy for 15-17-year-old students (including non-native speakers) to " +
@@ -107,7 +108,7 @@ public static class TextEvaluatingPrompts
                  "\nDo not begin with thanking the student for submitting their essay"
                  "\nExample AI Output:" +
                  "\n“You have written an essay in which it is evident that you have good understandig of the short story analysed, and a good grasp on"+
-                 "the writing genre, the analytical essay. However the assignment asked you to focus on the character's relationship in the short story,"+
+                 "the writing genre, the analytical essay. However the assignment asked you to focus on the characters' relationship in the short story,"+
                  "so it would have been better if you had focused more on this in your essay" +
                  "Next time, it’s a good idea to read the assignment description slowly before you start and check when you finish if you’ve answered everything " +
                  "it asks. You’re on the right track—keep practicing!”" +
