@@ -29,8 +29,10 @@ public class OpenAiService : IOpenAiService
 
     private static string keyFromEnvironment =
         //"14iJ5AHR1VzKxf8yHNmWWqEFGPKz41zIo06oG816TufVbeKNyDwKJQQJ99AKACfhMk5XJ3w3AAABACOGRcGt"; 
-        "9qI35RSMYA99C35ZuyV3zmJ7KQw3OYZgNDTvh8BQg8StXOvABkV8JQQJ99BEACfhMk5XJ3w3AAABACOGG3J8";
+        //"9qI35RSMYA99C35ZuyV3zmJ7KQw3OYZgNDTvh8BQg8StXOvABkV8JQQJ99BEACfhMk5XJ3w3AAABACOGG3J8";
         //Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
+        Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+        ?? throw new InvalidOperationException("OPENAI_API_KEY is not set.");
     
     private static AzureOpenAIClient _openAiClient = new(
         //new Uri("https://edai-llm.openai.azure.com"), 
@@ -227,7 +229,7 @@ public class OpenAiService : IOpenAiService
         var structureArea = await AssessOverall(FeedbackType.Structure);
         Console.WriteLine($"{DateTime.Now.ToString(CultureInfo.CurrentCulture)}: Received Structure. Starting to Asses Assignment Answer");
         var answerArea = await AssessOverall(FeedbackType.AssignmentAnswer);
-        Console.WriteLine($"{DateTime.Now.ToString(CultureInfo.CurrentCulture)}: Received Assignment Answer");
+         Console.WriteLine($"{DateTime.Now.ToString(CultureInfo.CurrentCulture)}: Received Assignment Answer");
 
         var score = new GenerateScoreDTO
         {

@@ -1,6 +1,24 @@
 ﻿services:
-  edai.server:
-    image: edai.server
-    build:
+  backend:
+    build: 
       context: .
       dockerfile: EDAI.Server/Dockerfile
+    container_name: edai-backend
+    expose:
+      - "80"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+  reverse-proxy:
+    build:
+      context: .
+      dockerfile: EDAI.Client/Dockerfile
+    container_name: edai-proxy
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/certs:/etc/nginx/certs
+    depends_on:
+      - backend
+    

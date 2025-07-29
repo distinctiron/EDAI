@@ -14,10 +14,4 @@
       <PackageReference Include="JsonSchema.Net" Version="7.3.1" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="Microsoft.AspNetCore.Components.Web">
-        <HintPath>..\..\..\..\..\usr\local\share\dotnet\shared\Microsoft.AspNetCore.App\9.0.2\Microsoft.AspNetCore.Components.Web.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
 </Project>
