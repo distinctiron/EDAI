@@ -16,9 +16,9 @@ namespace EDAI.Server.Controllers;
 public class StudentController(EdaiContext context, IMapper mapper, IOpenAiService openAiService) : ControllerBase
 {
     [HttpGet(Name = "GetStudents")]
-    public IEnumerable<StudentDTO> GetStudents()
+    public async Task<IEnumerable<StudentDTO>> GetStudents()
     {
-        var entities = context.Students.Include( s => s.Essays);
+        var entities = await context.Students.Include( s => s.Essays).ToListAsync();
 
         var students = mapper.Map<IEnumerable<StudentDTO>>(entities);
         foreach (var student in students)
@@ -30,9 +30,9 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
     }
 
     [HttpGet("{id:int}", Name = "GetStudentById")]
-    public IResult GetById(int id)
+    public async Task<IResult> GetById(int id)
     {
-        var student = context.Students.Find(id);
+        var student = await context.Students.FindAsync(id);
         return student == null ? Results.NotFound() : Results.Ok(student);
     }
     
@@ -53,7 +53,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
     [HttpGet("getStudentSummary/{summaryId:int}", Name = "GetStudentSummary")]
     public async Task<IResult> GetStudentSummary(int summaryId)
     {
-        var studentSummary = context.StudentSummaries.Single(s => s.StudentSummaryId == summaryId);
+        var studentSummary = await context.StudentSummaries.SingleAsync(s => s.StudentSummaryId == summaryId);
 
         var studentSummaryDto = mapper.Map<StudentSummaryDTO>(studentSummary);
         
@@ -61,28 +61,28 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
     }
 
     [HttpPost(Name = "AddStudent")]
-    public IResult AddStudent(Student student)
+    public async Task<IResult> AddStudent(Student student)
     {
         context.Students.Add(student);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(student.StudentId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteStudent")]
-    public IResult DeleteStudent(int id)
+    public async Task<IResult> DeleteStudent(int id)
     {
-        var student = context.Students.Find(id);
+        var student = await context.Students.FindAsync(id);
         if (student == null) return Results.NotFound();
         context.Students.Remove(student);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(student);
     }
 
     [HttpPut(Name = "UpdateStudent")]
-    public IResult UpdateStudent(Student student)
+    public async Task<IResult> UpdateStudent(Student student)
     {
         context.Students.Update(student);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(student);
     }
 }

@@ -9,6 +9,7 @@ using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
 using Hangfire.Server;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Jobs;
 
@@ -16,13 +17,13 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
 {
     public async Task GenerateScore(IEnumerable<int> documentIds, string connectionId)
     {
-         var documents = context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId));
+         var documents = await context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId)).ToListAsync();
         
-        var essays = context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId));
+        var essays = await context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId)).ToListAsync();
 
         var assignmentIds = essays.Select(e => e.AssignmentId).Distinct();
 
-        var assignments = context.Assignments.Where(a => assignmentIds.Contains(a.AssignmentId));
+        var assignments = await context.Assignments.Where(a => assignmentIds.Contains(a.AssignmentId)).ToListAsync();
 
         foreach (var assignment in assignments)
         {
@@ -102,7 +103,7 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
             {
                 var essayId = essays.Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single();
 
-                if (context.Scores.Any(s => s.EssayId == essayId))
+                if (await context.Scores.AnyAsync(s => s.EssayId == essayId))
                 {
                     continue;
                 }
@@ -144,7 +145,7 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
 
                 }
 
-                context.SaveChanges();
+                await context.SaveChangesAsync();
 
                 //await messageHub.Clients.Client(connectionId).SendAsync("ScoreGenerated",essayId.ToString());
                 await messageHub.Clients.All.SendAsync("ScoreGenerated", essayId.ToString());
