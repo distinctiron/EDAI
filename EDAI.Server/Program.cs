@@ -7,13 +7,12 @@ using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
 using EDAI.Shared.Models;
 using EDAI.Shared.Models.Entities;
-using EDAI.Shared.Tools;
-using Json.More;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +85,7 @@ app.UseResponseCompression();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    Env.Load();
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
     app.UseSwaggerUI();

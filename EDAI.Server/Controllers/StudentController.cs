@@ -1,17 +1,13 @@
 ﻿using AutoMapper;
-using EDAI.Client.Pages;
 using EDAI.Server.Data;
 using EDAI.Server.Jobs;
 using EDAI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared;
-using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using MudBlazor;
 
 namespace EDAI.Server.Controllers;
 

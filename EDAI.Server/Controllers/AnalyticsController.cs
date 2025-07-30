@@ -1,11 +1,8 @@
 ﻿using AutoMapper;
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
-using Microsoft.EntityFrameworkCore;
-using MudBlazor;
 
 namespace EDAI.Server.Controllers;
 
