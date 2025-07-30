@@ -17,7 +17,8 @@ public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory w
 {
     public async Task GenerateScore(IEnumerable<int> documentIds, string connectionId)
     {
-         var documents = await context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId)).ToListAsync();
+    
+        var documents = await context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId)).ToListAsync();
         
         var essays = await context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId)).ToListAsync();
 
