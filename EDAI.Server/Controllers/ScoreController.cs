@@ -6,12 +6,9 @@ using EDAI.Services.Interfaces;
 using EDAI.Shared.Factories;
 using EDAI.Shared.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
-using EDAI.Shared.Models.Enums;
-using EDAI.Shared.Tools;
 using Hangfire;
-using CommentsDTO = EDAI.Shared.Models.DTO.OpenAI.CommentsDTO;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -20,23 +17,23 @@ namespace EDAI.Server.Controllers;
 public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper) : ControllerBase
 {
     [HttpGet(Name = "GetScores")]
-    public IEnumerable<Score> GetScores()
+    public async Task<IEnumerable<Score>> GetScores()
     {
-        return context.Scores;
+        return await context.Scores.ToListAsync();
     }
 
     [HttpGet("{id:int}", Name = "GetScoresById")]
-    public IResult GetById(int id)
+    public async Task<IResult> GetById(int id)
     {
-        var score = context.Scores.Find(id);
+        var score = await context.Scores.FindAsync(id);
         return score == null ? Results.NotFound() : Results.Ok(score);
     }
 
     [HttpPost(Name = "AddScore")]
-    public IResult AddScore(Score score)
+    public async Task<IResult> AddScore(Score score)
     {
         context.Scores.Add(score);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(score.ScoreId);
     }
 
@@ -56,27 +53,27 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     }
 
     [HttpDelete("{id:int}", Name = "DeleteScore")]
-    public IResult DeleteScore(int id)
+    public async Task<IResult> DeleteScore(int id)
     {
-        var score = context.Scores.Find(id);
+        var score = await context.Scores.FindAsync(id);
         if (score == null) return Results.NotFound();
         context.Scores.Remove(score);
-        context.SaveChanges();
+        context.SaveChangesAsync();
         return Results.Ok(score);
     }
 
     [HttpPut(Name = "UpdateScore")]
-    public IResult UpdateScore(Score score)
+    public async Task<IResult> UpdateScore(Score score)
     {
         context.Scores.Update(score);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(score);
     }
     
     [HttpPost("{id:int}/uploadScoredDocumentFile", Name = "UploadScoredDocumentFile")]
-    public IResult UploadFile([FromRoute]int id, IFormFile file)
+    public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
-        var score = context.Scores.Find(id);
+        var score = await context.Scores.FindAsync(id);
         if (score == null) return Results.NotFound();
         
         MemoryStream memoryStream = new MemoryStream();
@@ -94,33 +91,33 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         score.EvaluatedEssayDocument = edaiDocument;
         context.Scores.Update(score);
         
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         return Results.Ok(score);
     }
 
     [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
-    public IResult DownloadFile(int id)
+    public async Task<IResult> DownloadFile(int id)
     {
-        var score = context.Scores.Where(s => s.EssayId == id)
+        var score = await context.Scores.Where(s => s.EssayId == id)
             .OrderByDescending(s => s.ScoreId)
-            .First();
+            .FirstAsync();
         if (score == null) return Results.NotFound();
-        var document = context.Documents.Find(score.EvaluatedEssayDocumentId);
+        var document = await context.Documents.FindAsync(score.EvaluatedEssayDocumentId);
         if (document == null) return Results.NotFound();
         var bytes = document.DocumentFile!;
         return Results.File(bytes, "application/octet-stream", document.DocumentName + document.DocumentFileExtension);
     }
 
     [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
-    public IResult DownloadMultipleFiles([FromQuery] List<int> ids)
+    public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
     {
-        var scores = context.Scores.Where(s => ids.Contains(s.EssayId))
+        var scores = await context.Scores.Where(s => ids.Contains(s.EssayId))
             .GroupBy(s => s.EssayId)
             .Select( g => g.OrderByDescending( s => s.ScoreId).First())
-            .Select( s=> s.EvaluatedEssayDocumentId);
+            .Select( s=> s.EvaluatedEssayDocumentId).ToListAsync();
         
-        var documents = context.Documents.Where(d => scores.Contains(d.EdaiDocumentId));
+        var documents = await context.Documents.Where(d => scores.Contains(d.EdaiDocumentId)).ToListAsync();
 
         using var zipStream = new MemoryStream();
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen:true))

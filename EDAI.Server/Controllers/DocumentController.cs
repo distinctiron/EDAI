@@ -1,11 +1,7 @@
-﻿using System.Text.Json;
-using AutoMapper;
+﻿using AutoMapper;
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared.Models;
-using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -31,7 +27,7 @@ public class DocumentController(EdaiContext context, IMapper _mapper) : Controll
         
         context.Documents.Add(entity);
 
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         return Ok(entity.EdaiDocumentId);
     }
