@@ -17,8 +17,11 @@ using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables();
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<EdaiContext>(options => 
     options.UseNpgsql(connectionString)
@@ -83,6 +86,12 @@ builder.Services.AddHangfire(configuration => configuration.UsePostgreSqlStorage
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EdaiContext>();
+    db.Database.Migrate();
+}
 
 app.UseResponseCompression();
 

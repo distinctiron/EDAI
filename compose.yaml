@@ -1,4 +1,17 @@
 ﻿services:
+  postgres:
+    image: postgres:15
+    container_name: edai-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${EDAI_USER}
+      POSTGRES_PASSWORD: ${EDAI_PASSWORD}
+      POSTGRES_DB: ${EDAI_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  
   backend:
     build: 
       context: .
@@ -8,12 +21,15 @@
       - "80"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-
-  reverse-proxy:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${EDAI_DB};Username=${EDAI_USER};Password=${EDAI_PASSWORD};  
+    depends_on:
+      - postgres
+    
+  frontend:
     build:
       context: .
       dockerfile: EDAI.Client/Dockerfile
-    container_name: edai-proxy
+    container_name: edai-frontend
     ports:
       - "443:443"
     volumes:
@@ -22,3 +38,5 @@
     depends_on:
       - backend
     
+volumes:
+  pgdata: {}
