@@ -11,24 +11,29 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace EDAI.Server.Jobs;
 
-public class GenerateStudentSummaryService(EdaiContext context, IOpenAiService openAiService, IHubContext<MessageHub> messageHub, IMapper mapper) : IGenerateStudentSummaryService
+public class GenerateStudentSummaryService(IOpenAiService openAiService, IHubContext<MessageHub> messageHub, IMapper mapper, IServiceProvider serviceProvider) : IGenerateStudentSummaryService
 {
     public async Task GenerateStudentSummaryScore(int studentId, string connectionString)
     {
-        var scores = context.Scores.Where(s => s.Essay.StudentId == studentId);
-        openAiService.InitiateStudentSummaryConversation();
-        var studentSummary = await openAiService.GenerateStudentSummary(scores);
+        using (var scope = serviceProvider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<EdaiContext>();
+            
+            var scores = context.Scores.Where(s => s.Essay.StudentId == studentId);
+            openAiService.InitiateStudentSummaryConversation();
+            var studentSummary = await openAiService.GenerateStudentSummary(scores);
 
-        var entity = mapper.Map<StudentSummary>(studentSummary);
-        entity.StudentId = studentId;
+            var entity = mapper.Map<StudentSummary>(studentSummary);
+            entity.StudentId = studentId;
 
-        context.StudentSummaries.Add(entity);
+            context.StudentSummaries.Add(entity);
 
-        context.SaveChanges();
+            context.SaveChanges();
         
-        //await messageHub.Clients.Client(connectionString).SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
+            //await messageHub.Clients.Client(connectionString).SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
         
-        await messageHub.Clients.All.SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
+            await messageHub.Clients.All.SendAsync("SummaryGenerated", entity.StudentSummaryId.ToString());
+        }
         
     }
 }

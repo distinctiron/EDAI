@@ -21,6 +21,8 @@ FROM base AS final
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:80 
 COPY --from=publish /app/publish .
+COPY /wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 RUN chown -R $APP_UID:$APP_UID /app
 USER $APP_UID
-ENTRYPOINT ["dotnet", "EDAI.Server.dll"]
+ENTRYPOINT ["/wait-for-it.sh", "postgres:5432", "--", "dotnet", "EDAI.Server.dll"]
