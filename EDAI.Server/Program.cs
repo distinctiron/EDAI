@@ -23,6 +23,7 @@ builder.Configuration
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+
 builder.Services.AddDbContext<EdaiContext>(options => 
     options.UseNpgsql(connectionString)
         .UseSeeding((context, _) =>

@@ -33,6 +33,7 @@ public class GenerateScoreService(IWordFileHandlerFactory wordFileHandlerFactory
             {
                 string referenceText = null;
 
+
                 if (assignment?.ReferenceDocument?.DocumentFileExtension == "pdf")
                 {
                     referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
