@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace EDAI.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateDatabase : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,12 +16,12 @@ namespace EDAI.Server.Migrations
                 name: "Documents",
                 columns: table => new
                 {
-                    EdaiDocumentId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DocumentName = table.Column<string>(type: "TEXT", nullable: false),
-                    DocumentFileExtension = table.Column<string>(type: "TEXT", nullable: false),
-                    UploadDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    DocumentFile = table.Column<byte[]>(type: "BLOB", nullable: false)
+                    EdaiDocumentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DocumentName = table.Column<string>(type: "text", nullable: false),
+                    DocumentFileExtension = table.Column<string>(type: "text", nullable: false),
+                    UploadDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DocumentFile = table.Column<byte[]>(type: "bytea", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,10 +32,10 @@ namespace EDAI.Server.Migrations
                 name: "FeedbackComments",
                 columns: table => new
                 {
-                    FeedbackCommentId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    CommentType = table.Column<int>(type: "INTEGER", nullable: false),
-                    CommentFeedback = table.Column<string>(type: "TEXT", nullable: false)
+                    FeedbackCommentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CommentType = table.Column<int>(type: "integer", nullable: false),
+                    CommentFeedback = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -45,10 +46,10 @@ namespace EDAI.Server.Migrations
                 name: "StudentClasses",
                 columns: table => new
                 {
-                    StudentClassId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Class = table.Column<string>(type: "TEXT", nullable: false),
-                    School = table.Column<string>(type: "TEXT", nullable: false)
+                    StudentClassId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Class = table.Column<string>(type: "text", nullable: false),
+                    School = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -59,12 +60,12 @@ namespace EDAI.Server.Migrations
                 name: "Assignments",
                 columns: table => new
                 {
-                    AssignmentId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", nullable: false),
-                    Open = table.Column<bool>(type: "INTEGER", nullable: false),
-                    ReferenceDocumentId = table.Column<int>(type: "INTEGER", nullable: true)
+                    AssignmentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    Open = table.Column<bool>(type: "boolean", nullable: false),
+                    ReferenceDocumentId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -80,13 +81,13 @@ namespace EDAI.Server.Migrations
                 name: "Students",
                 columns: table => new
                 {
-                    StudentId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    FirstName = table.Column<string>(type: "TEXT", nullable: false),
-                    LastName = table.Column<string>(type: "TEXT", nullable: false),
-                    Class = table.Column<string>(type: "TEXT", nullable: false),
-                    StudentClassId = table.Column<int>(type: "INTEGER", nullable: false),
-                    GraduationYear = table.Column<int>(type: "INTEGER", nullable: false)
+                    StudentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FirstName = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
+                    Class = table.Column<string>(type: "text", nullable: false),
+                    StudentClassId = table.Column<int>(type: "integer", nullable: false),
+                    GraduationYear = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -103,12 +104,12 @@ namespace EDAI.Server.Migrations
                 name: "Essays",
                 columns: table => new
                 {
-                    EssayId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    EdaiDocumentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    AssignmentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    StudentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Evaluated = table.Column<bool>(type: "INTEGER", nullable: false)
+                    EssayId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EdaiDocumentId = table.Column<int>(type: "integer", nullable: false),
+                    AssignmentId = table.Column<int>(type: "integer", nullable: false),
+                    StudentId = table.Column<int>(type: "integer", nullable: false),
+                    Evaluated = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -137,13 +138,13 @@ namespace EDAI.Server.Migrations
                 name: "StudentSummaries",
                 columns: table => new
                 {
-                    StudentSummaryId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    StudentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Summary = table.Column<string>(type: "TEXT", nullable: false),
-                    FocusArea1 = table.Column<string>(type: "TEXT", nullable: false),
-                    FocusArea2 = table.Column<string>(type: "TEXT", nullable: false),
-                    FocusArea3 = table.Column<string>(type: "TEXT", nullable: false)
+                    StudentSummaryId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StudentId = table.Column<int>(type: "integer", nullable: false),
+                    Summary = table.Column<string>(type: "text", nullable: false),
+                    FocusArea1 = table.Column<string>(type: "text", nullable: false),
+                    FocusArea2 = table.Column<string>(type: "text", nullable: false),
+                    FocusArea3 = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -160,14 +161,14 @@ namespace EDAI.Server.Migrations
                 name: "IndexedContents",
                 columns: table => new
                 {
-                    IndexedContentId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ParagraphIndex = table.Column<int>(type: "INTEGER", nullable: false),
-                    RunIndex = table.Column<int>(type: "INTEGER", nullable: false),
-                    FromCharInContent = table.Column<int>(type: "INTEGER", nullable: true),
-                    ToCharInContent = table.Column<int>(type: "INTEGER", nullable: true),
-                    Content = table.Column<string>(type: "TEXT", nullable: false),
-                    EssayId = table.Column<int>(type: "INTEGER", nullable: false)
+                    IndexedContentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ParagraphIndex = table.Column<int>(type: "integer", nullable: false),
+                    RunIndex = table.Column<int>(type: "integer", nullable: false),
+                    FromCharInContent = table.Column<int>(type: "integer", nullable: true),
+                    ToCharInContent = table.Column<int>(type: "integer", nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    EssayId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -184,23 +185,23 @@ namespace EDAI.Server.Migrations
                 name: "Scores",
                 columns: table => new
                 {
-                    ScoreId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    EssayId = table.Column<int>(type: "INTEGER", nullable: false),
-                    OverallScore = table.Column<float>(type: "REAL", nullable: false),
-                    ArgumentationScore = table.Column<float>(type: "REAL", nullable: false),
-                    ArgumentationRecommendation = table.Column<string>(type: "TEXT", nullable: false),
-                    GrammarScore = table.Column<float>(type: "REAL", nullable: false),
-                    GrammarRecommendation = table.Column<string>(type: "TEXT", nullable: false),
-                    EloquenceScore = table.Column<float>(type: "REAL", nullable: false),
-                    EloquenceRecommendation = table.Column<string>(type: "TEXT", nullable: false),
-                    EvaluatedEssayDocumentId = table.Column<int>(type: "INTEGER", nullable: true),
-                    OverallStructure = table.Column<string>(type: "TEXT", nullable: false),
-                    OverallStructureScore = table.Column<float>(type: "REAL", nullable: false),
-                    OverallStructureRecommendation = table.Column<string>(type: "TEXT", nullable: false),
-                    AssignmentAnswer = table.Column<string>(type: "TEXT", nullable: false),
-                    AssignmentAnswerScore = table.Column<float>(type: "REAL", nullable: false),
-                    AssignmentAnswerRecommendation = table.Column<string>(type: "TEXT", nullable: false)
+                    ScoreId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EssayId = table.Column<int>(type: "integer", nullable: false),
+                    OverallScore = table.Column<float>(type: "real", nullable: false),
+                    ArgumentationScore = table.Column<float>(type: "real", nullable: false),
+                    ArgumentationRecommendation = table.Column<string>(type: "text", nullable: false),
+                    GrammarScore = table.Column<float>(type: "real", nullable: false),
+                    GrammarRecommendation = table.Column<string>(type: "text", nullable: false),
+                    EloquenceScore = table.Column<float>(type: "real", nullable: false),
+                    EloquenceRecommendation = table.Column<string>(type: "text", nullable: false),
+                    EvaluatedEssayDocumentId = table.Column<int>(type: "integer", nullable: true),
+                    OverallStructure = table.Column<string>(type: "text", nullable: false),
+                    OverallStructureScore = table.Column<float>(type: "real", nullable: false),
+                    OverallStructureRecommendation = table.Column<string>(type: "text", nullable: false),
+                    AssignmentAnswer = table.Column<string>(type: "text", nullable: false),
+                    AssignmentAnswerScore = table.Column<float>(type: "real", nullable: false),
+                    AssignmentAnswerRecommendation = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -222,20 +223,20 @@ namespace EDAI.Server.Migrations
                 name: "FeedbackCommentIndexedContent",
                 columns: table => new
                 {
-                    FeedbackCommentsFeedbackCommentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    RelatedTextsIndexedContentId = table.Column<int>(type: "INTEGER", nullable: false)
+                    FeedbackCommentsFeedbackCommentId = table.Column<int>(type: "integer", nullable: false),
+                    RelatedTextsIndexedContentId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FeedbackCommentIndexedContent", x => new { x.FeedbackCommentsFeedbackCommentId, x.RelatedTextsIndexedContentId });
                     table.ForeignKey(
-                        name: "FK_FeedbackCommentIndexedContent_FeedbackComments_FeedbackCommentsFeedbackCommentId",
+                        name: "FK_FeedbackCommentIndexedContent_FeedbackComments_FeedbackComm~",
                         column: x => x.FeedbackCommentsFeedbackCommentId,
                         principalTable: "FeedbackComments",
                         principalColumn: "FeedbackCommentId",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_FeedbackCommentIndexedContent_IndexedContents_RelatedTextsIndexedContentId",
+                        name: "FK_FeedbackCommentIndexedContent_IndexedContents_RelatedTextsI~",
                         column: x => x.RelatedTextsIndexedContentId,
                         principalTable: "IndexedContents",
                         principalColumn: "IndexedContentId",

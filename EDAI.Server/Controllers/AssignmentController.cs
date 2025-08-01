@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
-using EDAI.Shared.Models;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -12,28 +12,28 @@ namespace EDAI.Server.Controllers;
 public class AssignmentController(EdaiContext context, IMapper _mapper) : ControllerBase
 {   
     [HttpGet(Name = "GetAssignments")]
-    public IEnumerable<AssignmentDTO> GetAssignments()
+    public async Task<IEnumerable<AssignmentDTO>> GetAssignments()
     {
-        return _mapper.Map<IEnumerable<AssignmentDTO>>(context.Assignments);
+        return _mapper.Map<IEnumerable<AssignmentDTO>>(await context.Assignments.ToListAsync());
     }
 
     [HttpGet("{id:int}", Name = "GetAssignmentById")]
-    public IResult GetById(int id)
+    public async Task<IResult> GetById(int id)
     {
-        var assignment = context.Assignments.Find(id);
+        var assignment = await context.Assignments.FindAsync(id);
         return assignment == null ? Results.NotFound() : Results.Ok(assignment);
     }
 
     [HttpPost(Name = "AddAssignment")]
-    public IResult AddAssignment(AssignmentDTO assignment)
+    public async Task<IResult> AddAssignment(AssignmentDTO assignment)
     {
         var entity = _mapper.Map<Assignment>(assignment);
         
         context.Assignments.Add(entity);
         
-        context.SaveChanges();
+        context.SaveChangesAsync();
 
-        var students = context.Students.Where(x => assignment.StudentClasses.Contains(x.Class));
+        var students = await context.Students.Where(x => assignment.StudentClasses.Contains(x.Class)).ToListAsync();
         
         foreach (var student in students)
         {
@@ -45,33 +45,33 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
             });
         }
 
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         
         return Results.Ok(entity.AssignmentId);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteAssignment")]
-    public IResult DeleteAssignment(int id)
+    public async Task<IResult> DeleteAssignment(int id)
     {
-        var assignment = context.Assignments.Find(id);
+        var assignment = await context.Assignments.FindAsync(id);
         if (assignment == null) return Results.NotFound();
         context.Assignments.Remove(assignment);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(assignment);
     }
 
     [HttpPut(Name = "UpdateAssignment")]
-    public IResult UpdateAssignment(Assignment assignment)
+    public async Task<IResult> UpdateAssignment(Assignment assignment)
     {
         context.Assignments.Update(assignment);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return Results.Ok(assignment);
     }
     
     [HttpPost("{id:int}/uploadDocumentFile", Name = "UploadAssignmentReferenceFile")]
-    public IResult UploadFile([FromRoute]int id, IFormFile file)
+    public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
-        var assignment = context.Assignments.Find(id);
+        var assignment = await context.Assignments.FindAsync(id);
         if (assignment == null) return Results.NotFound();
         
         MemoryStream memoryStream = new MemoryStream();
@@ -89,17 +89,17 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         assignment.ReferenceDocument = edaiDocument;
         context.Assignments.Update(assignment);
         
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         return Results.Ok(assignment);
     }
 
     [HttpGet("{id:int}/documentFile", Name = "DownloadAssignmentReferenceFile")]
-    public IResult DownloadFile(int id)
+    public async Task<IResult> DownloadFile(int id)
     {
-        var assignment = context.Assignments.Find(id);
+        var assignment = await context.Assignments.FindAsync(id);
         if (assignment == null) return Results.NotFound();
-        var document = context.Documents.Find(assignment.ReferenceDocumentId);
+        var document = await context.Documents.FindAsync(assignment.ReferenceDocumentId);
         if (document == null) return Results.NotFound();
         var bytes = document.DocumentFile!;
         return Results.File(bytes, "application/octet-stream", document.DocumentName);

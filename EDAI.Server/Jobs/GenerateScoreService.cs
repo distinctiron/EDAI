@@ -7,147 +7,90 @@ using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
-using Hangfire.Server;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Jobs;
 
-public class GenerateScoreService(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper, IHubContext<MessageHub> messageHub, IServiceProvider serviceProvider) : IGenerateScoreService
+public class GenerateScoreService(IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper, IHubContext<MessageHub> messageHub, IServiceProvider serviceProvider) : IGenerateScoreService
 {
     public async Task GenerateScore(IEnumerable<int> documentIds, string connectionId)
     {
-         var documents = context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId));
-        
-        var essays = context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId));
 
-        var assignmentIds = essays.Select(e => e.AssignmentId).Distinct();
-
-        var assignments = context.Assignments.Where(a => assignmentIds.Contains(a.AssignmentId));
-
-        foreach (var assignment in assignments)
+        using (var scope = serviceProvider.CreateScope())
         {
-            string referenceText = null;
-
-            if (assignment?.ReferenceDocument?.DocumentFileExtension == "pdf")
-            {
-                referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
-            }
+            var context = scope.ServiceProvider.GetRequiredService<EdaiContext>();
             
-            /*
+            var documents = await context.Documents.Where(d => documentIds.Contains(d.EdaiDocumentId)).ToListAsync();
+        
+            var essays = await context.Essays.Where(e => documentIds.Contains(e.EdaiDocumentId)).ToListAsync();
 
-            var tasks = documents.ToList().Select(async document =>
+            var assignmentIds = essays.Select(e => e.AssignmentId).Distinct();
+
+            var assignments = await context.Assignments.Where(a => assignmentIds.Contains(a.AssignmentId)).ToListAsync();
+
+            foreach (var assignment in assignments)
             {
-                using var scope = serviceProvider.CreateScope();
-
-                var edaiContext = scope.ServiceProvider.GetRequiredService<EdaiContext>();
-                
-                var essayId = essays.ToList().Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single();
-
-               if (edaiContext.Scores.Any(s => s.EssayId == essayId))
-               {
-                   return;
-               }
-               
-               using (var documentStream = new MemoryStream(document.DocumentFile))
-               {
-                   using (var wordFileHandler =
-                          wordFileHandlerFactory.CreateWordFileHandler(documentStream, essayId))
-                   {
-                       var essayText = wordFileHandler.GetDocumentText();
-                   
-                       openAiService.InitiateScoreConversation(essayText, assignment.Description, referenceText);
-                   
-                       var generatedScore = await openAiService.AssessEssayAsync();
-
-                       var reviewTuple = await wordFileHandler.CreateReviewDocument(document, generatedScore);
-
-                       var indexedContents = reviewTuple.Item2;
-                   
-                       edaiContext.IndexedContents.AddRange(indexedContents);
-
-                       var reviewedDocument = reviewTuple.Item1;
-                       edaiContext.Documents.Add(reviewedDocument);
-                   
-                       var outputEntities = OutputEntitiesFromAI(generatedScore, indexedContents);
-
-                       var score = outputEntities.Item1;
-                       score.EvaluatedEssayDocument = reviewedDocument;
-                       score.EvaluatedEssayDocumentId = reviewedDocument.EdaiDocumentId;
-                       score.Essay = essays.ToList().Single(e => e.EdaiDocumentId == document.EdaiDocumentId);
-                       score.EssayId = essayId;
-
-                       edaiContext.Scores.Add(score);
-                   
-                       var feedbackComments = outputEntities.Item2;
-                       edaiContext.FeedbackComments.AddRange(feedbackComments);
-                   
-                   }
-                   
-               }
-
-               edaiContext.SaveChanges();
-
-               //await messageHub.Clients.Client(connectionId).SendAsync("ScoreGenerated",essayId.ToString());
-               await messageHub.Clients.All.SendAsync("ScoreGenerated", essayId.ToString());
-            });
-
-            await Task.WhenAll(tasks);
+                string referenceText = null;
 
 
-
-            */
-
-
-            foreach (var document in documents)
-            {
-                var essayId = essays.Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single();
-
-                if (context.Scores.Any(s => s.EssayId == essayId))
+                if (assignment?.ReferenceDocument?.DocumentFileExtension == "pdf")
                 {
-                    continue;
+                    referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
                 }
-
-                using (var documentStream = new MemoryStream(document.DocumentFile))
+                
+                foreach (var document in documents)
                 {
-                    using (var wordFileHandler =
-                           wordFileHandlerFactory.CreateWordFileHandler(documentStream, essayId))
+                    var essayId = essays.Where(e => e.EdaiDocumentId == document.EdaiDocumentId).Select(e => e.EssayId).Single();
+
+                    if (await context.Scores.AnyAsync(s => s.EssayId == essayId))
                     {
-                        var essayText = wordFileHandler.GetDocumentText();
+                        continue;
+                    }
 
-                        openAiService.InitiateScoreConversation(essayText, assignment.Description, referenceText);
+                    using (var documentStream = new MemoryStream(document.DocumentFile))
+                    {
+                        using (var wordFileHandler =
+                               wordFileHandlerFactory.CreateWordFileHandler(documentStream, essayId))
+                        {
+                            var essayText = wordFileHandler.GetDocumentText();
 
-                        var generatedScore = await openAiService.AssessEssayAsync();
+                            openAiService.InitiateScoreConversation(essayText, assignment.Description, referenceText);
 
-                        var reviewTuple = await wordFileHandler.CreateReviewDocument(document, generatedScore);
+                            var generatedScore = await openAiService.AssessEssayAsync();
 
-                        var indexedContents = reviewTuple.Item2;
+                            var reviewTuple = await wordFileHandler.CreateReviewDocument(document, generatedScore);
 
-                        context.IndexedContents.AddRange(indexedContents);
+                            var indexedContents = reviewTuple.Item2;
 
-                        var reviewedDocument = reviewTuple.Item1;
-                        context.Documents.Add(reviewedDocument);
+                            context.IndexedContents.AddRange(indexedContents);
 
-                        var outputEntities = OutputEntitiesFromAI(generatedScore, indexedContents);
+                            var reviewedDocument = reviewTuple.Item1;
+                            context.Documents.Add(reviewedDocument);
 
-                        var score = outputEntities.Item1;
-                        score.EvaluatedEssayDocument = reviewedDocument;
-                        score.EvaluatedEssayDocumentId = reviewedDocument.EdaiDocumentId;
-                        score.Essay = essays.Single(e => e.EdaiDocumentId == document.EdaiDocumentId);
-                        score.EssayId = essayId;
+                            var outputEntities = OutputEntitiesFromAI(generatedScore, indexedContents);
 
-                        context.Scores.Add(score);
+                            var score = outputEntities.Item1;
+                            score.EvaluatedEssayDocument = reviewedDocument;
+                            score.EvaluatedEssayDocumentId = reviewedDocument.EdaiDocumentId;
+                            score.Essay = essays.Single(e => e.EdaiDocumentId == document.EdaiDocumentId);
+                            score.EssayId = essayId;
 
-                        var feedbackComments = outputEntities.Item2;
-                        context.FeedbackComments.AddRange(feedbackComments);
+                            context.Scores.Add(score);
+
+                            var feedbackComments = outputEntities.Item2;
+                            context.FeedbackComments.AddRange(feedbackComments);
+
+                        }
 
                     }
 
+                    await context.SaveChangesAsync();
+
+                    //await messageHub.Clients.Client(connectionId).SendAsync("ScoreGenerated",essayId.ToString());
+                    await messageHub.Clients.All.SendAsync("ScoreGenerated", essayId.ToString());
                 }
-
-                context.SaveChanges();
-
-                //await messageHub.Clients.Client(connectionId).SendAsync("ScoreGenerated",essayId.ToString());
-                await messageHub.Clients.All.SendAsync("ScoreGenerated", essayId.ToString());
+            
             }
 
         }

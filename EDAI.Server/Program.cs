@@ -13,13 +13,19 @@ using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using DotNetEnv;
+using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+
 builder.Services.AddDbContext<EdaiContext>(options => 
-    options.UseSqlite(connectionString)
+    options.UseNpgsql(connectionString)
         .UseSeeding((context, _) =>
         {
             var studentClass = new StudentClass() { Class = "1C", School = "Katedralskolen" };
@@ -74,10 +80,19 @@ builder.Services.AddResponseCompression(opts =>
         ["application/octet-stream" ]);
 });
 
-builder.Services.AddHangfire(configuration => configuration.UseMemoryStorage());
+builder.Services.AddHangfire(configuration => configuration.UsePostgreSqlStorage(connectionString, new PostgreSqlStorageOptions
+{
+    SchemaName = "HangFire"
+}));
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EdaiContext>();
+    db.Database.Migrate();
+}
 
 app.UseResponseCompression();
 

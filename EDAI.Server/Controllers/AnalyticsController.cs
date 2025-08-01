@@ -3,6 +3,7 @@ using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
@@ -11,11 +12,18 @@ namespace EDAI.Server.Controllers;
 public class AnalyticsController(EdaiContext context, IMapper _mapper) : ControllerBase
 {   
     [HttpGet("{id:int}", Name = "GetStudentAnalytics")]
-    public IResult GetStudentAnalytics(int id)
+    public async Task<IResult> GetStudentAnalytics(int id)
     {
-        var essays = context.Essays.Where(e => e.StudentId == id);
+        var essays = await context.Essays.Where(e => e.StudentId == id).ToListAsync();
 
         var essayAnalyses = GetEssayAnalyses(essays);
+
+        IEnumerable<EssayAnalysisDTO> essayAnalysisDtos = new List<EssayAnalysisDTO>();
+
+        await foreach (var essayAnalysis in essayAnalyses)
+        {
+            essayAnalysisDtos.Append(essayAnalysis);
+        }
 
         /*var rto = new List<EssayAnalysisDTO>();
 
@@ -30,17 +38,17 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
         var studentAnalysis = new StudentAnalysisDTO
         {
             StudentId = id,
-            EssayAnalysese = essayAnalyses
+            EssayAnalysese = essayAnalysisDtos
         };
         
         return Results.Ok(studentAnalysis);
     }
 
-    private IEnumerable<EssayAnalysisDTO> GetEssayAnalyses(IEnumerable<Essay> essays)
+    private async IAsyncEnumerable<EssayAnalysisDTO> GetEssayAnalyses(IEnumerable<Essay> essays)
     {
         foreach (var essay in essays)
         {
-            if (context.Scores.Count(s => s.EssayId == essay.EssayId) > 0)
+            if (await context.Scores.CountAsync(s => s.EssayId == essay.EssayId) > 0)
             {
                 yield return new EssayAnalysisDTO
                 {
