@@ -3,14 +3,16 @@ using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class AnalyticsController(EdaiContext context, IMapper _mapper) : ControllerBase
 {   
+    [Authorize]
     [HttpGet("{id:int}", Name = "GetStudentAnalytics")]
     public async Task<IResult> GetStudentAnalytics(int id)
     {

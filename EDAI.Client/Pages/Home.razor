@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
 
 <PageTitle>Home</PageTitle>
 
@@ -25,6 +26,25 @@
     <div>
         <h5 class="logo-auxilary-text">Your AI-powered reviewer</h5>
     </div>
-    <MudButton Color="Color.Dark" Variant="Variant.Filled" Class="mt-6">Get Started</MudButton>
+    <AuthorizeView>
+        <Authorized>
+            <MudButton Color="Color.Dark" Variant="Variant.Filled" OnClick="@(() => Navigation.NavigateTo("/fileupload"))" Class="mt-6">Get Started</MudButton>        
+        </Authorized>
+        <NotAuthorized>
+            <MudButton Color="Color.Dark" Variant="Variant.Filled" OnClick="@(() => Navigation.NavigateTo("/login"))" Class="mt-6">Log in</MudButton>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    
     
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Console.WriteLine("Home initialized");
+        
+    }
+    
+    
+}

@@ -1,0 +1,52 @@
+@page "/Login"
+@using System.ComponentModel.DataAnnotations
+@using Blazored.LocalStorage
+@using EDAI.Client.Identity
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.DTO.OpenAI
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient _Client
+@inject ILocalStorageService _LocalStorage
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudPaper Class="p-5">
+            <MudForm Model="@model" @ref="@form" @bind-IsValid="@validCredentials" @bind-Errors="@errors">
+                <MudTextField @bind-Value="model.Email" T="string" Label="Email" Required="true" RequiredError="Please specify email" 
+                              Validation="@(new EmailAddressAttribute(){ErrorMessage="Invalid email address"})"/>
+                <MudTextField @bind-Value="model.Password" T="string" InputType="InputType.Password" Label="Password" Required="true" RequiredError="Please specify password"/>
+                <MudButton OnClick="@(async () => await Submit())" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!validCredentials)">Log in</MudButton>
+            </MudForm>
+
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    MudForm form;
+    string[] errors;
+    string errorMessageOnLogin;
+    bool validCredentials;
+    LoginRequestDto model = new LoginRequestDto();
+
+    private async Task Submit()
+    {
+        var loginResponse = await _Client.PostAsJsonAsync("api/identity/login", model);
+
+        if (loginResponse.IsSuccessStatusCode)
+        {
+            var content = await loginResponse.Content.ReadFromJsonAsync<TokenResponseDto>();
+            await _LocalStorage.SetItemAsync("authToken", content.Token);
+            ((EdaiAuthStateProvider)AuthProvider).NotifyAuthenticationStateChanged();
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            errorMessageOnLogin = "Invalid login";
+        }
+    }
+}

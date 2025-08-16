@@ -1,5 +1,8 @@
 using System.Text.Json;
+using Blazored.LocalStorage;
 using EDAI.Client;
+using EDAI.Client.Identity;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -22,6 +25,9 @@ builder.Services.AddSingleton(config);
  //   .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
+builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, EdaiAuthStateProvider>();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 

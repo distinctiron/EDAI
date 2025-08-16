@@ -1,10 +1,12 @@
 @page "/fileupload"
+@attribute [Authorize]
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using EDAI.Client.Components
 @using EDAI.Shared.Exceptions
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
 @inject IDialogService DialogService
@@ -188,7 +190,7 @@
         if (ids.Count() > 1)
         {
             var queryString = string.Join("&", ids.Select(id => $"ids={id}"));
-            var url = $"Score/bulkdownload?{queryString}";
+            var url = $"api/Score/bulkdownload?{queryString}";
 
             var response = await _Client.GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -203,7 +205,7 @@
         else
         {
             var id = ids.Single();
-            var response = await _Client.GetAsync($"Score/{id}/downloadScoredDocumentFile");
+            var response = await _Client.GetAsync($"api/score/{id}/downloadScoredDocumentFile");
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsByteArrayAsync();
@@ -243,11 +245,11 @@
             
             content.Add(new StreamContent(fileContent),"file",_essay.Item2.Name);
 
-            var documentResponse = await _Client.PostAsync("Document/uploadFiles", content);
+            var documentResponse = await _Client.PostAsync("api/document/uploadFiles", content);
             var documentId = await documentResponse.Content.ReadFromJsonAsync<int>();
 
             _essay.Item1.EdaiDocumentId = documentId;
-            var essayResponse = await _Client.PostAsJsonAsync("Essay/bulk", _essay.Item1);
+            var essayResponse = await _Client.PostAsJsonAsync("api/essay/bulk", _essay.Item1);
             
             if (essayResponse.IsSuccessStatusCode)
             {
@@ -273,7 +275,7 @@
                 DocumentIds = documentIds,
                 ConnectionId = _connectionString
             };
-            var scoreResponse = await _Client.PostAsJsonAsync("Score/generatescores", request);
+            var scoreResponse = await _Client.PostAsJsonAsync("api/score/generatescores", request);
         }
 
     }
@@ -309,9 +311,9 @@
             PropertyNameCaseInsensitive = true
         };
 
-        _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", options);
+        _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("api/assignment", options);
 
-        _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+        _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("api/student", options);
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
@@ -373,7 +375,7 @@
                 PropertyNameCaseInsensitive = true
             };
 
-            _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("Assignment", httpOptions);
+            _assignments = await _Client.GetFromJsonAsync<IEnumerable<AssignmentDTO>>("api/assignment", httpOptions);
 
             _assignmentCreated = true;
         }

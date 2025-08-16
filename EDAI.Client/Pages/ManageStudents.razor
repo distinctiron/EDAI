@@ -1,7 +1,8 @@
 @page "/manage-students"
+@attribute [Authorize]
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using EDAI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
 @using System.Collections.ObjectModel
 @using EDAI.Shared.Models.Entities
 @inject HttpClient _Client
@@ -36,6 +37,8 @@
 {
     private ObservableCollection<Student> _students;
 
+    private ObservableCollection<Assignment> _assignments;
+
     private string _searchString;
 
     protected override async Task OnInitializedAsync()
@@ -45,9 +48,9 @@
             ReferenceHandler = ReferenceHandler.Preserve,
             PropertyNameCaseInsensitive = true
         };
-        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Student", options);
+        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("api/student", options);
         
-        _students = await _Client.GetFromJsonAsync<ObservableCollection<Student>>("Assignment", options);
+        _assignments = await _Client.GetFromJsonAsync<ObservableCollection<Assignment>>("api/assignment", options);
     }
     
     private Func<Student, bool> _search => x =>

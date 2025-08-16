@@ -8,20 +8,23 @@ using EDAI.Shared.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.Entities;
 using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper) : ControllerBase
 {
+    [Authorize]
     [HttpGet(Name = "GetScores")]
     public async Task<IEnumerable<Score>> GetScores()
     {
         return await context.Scores.ToListAsync();
     }
 
+    [Authorize]
     [HttpGet("{id:int}", Name = "GetScoresById")]
     public async Task<IResult> GetById(int id)
     {
@@ -29,6 +32,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return score == null ? Results.NotFound() : Results.Ok(score);
     }
 
+    [Authorize]
     [HttpPost(Name = "AddScore")]
     public async Task<IResult> AddScore(Score score)
     {
@@ -37,6 +41,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.Ok(score.ScoreId);
     }
 
+    [Authorize]
     [HttpPost("generatescores", Name = "GenerateScores")]
     public async Task<IResult> GenerateScores(GenerateScoreRequestDTO generateScoreRequestDto)
     {
@@ -52,6 +57,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.Accepted(null, response);
     }
 
+    [Authorize]
     [HttpDelete("{id:int}", Name = "DeleteScore")]
     public async Task<IResult> DeleteScore(int id)
     {
@@ -62,6 +68,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.Ok(score);
     }
 
+    [Authorize]
     [HttpPut(Name = "UpdateScore")]
     public async Task<IResult> UpdateScore(Score score)
     {
@@ -70,6 +77,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.Ok(score);
     }
     
+    [Authorize]
     [HttpPost("{id:int}/uploadScoredDocumentFile", Name = "UploadScoredDocumentFile")]
     public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
@@ -96,6 +104,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.Ok(score);
     }
 
+    [Authorize]
     [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
     public async Task<IResult> DownloadFile(int id)
     {
@@ -109,6 +118,7 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         return Results.File(bytes, "application/octet-stream", document.DocumentName + document.DocumentFileExtension);
     }
 
+    [Authorize]
     [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
     public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
     {

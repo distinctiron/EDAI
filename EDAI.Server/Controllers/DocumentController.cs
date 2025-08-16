@@ -2,13 +2,15 @@
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class DocumentController(EdaiContext context, IMapper _mapper) : ControllerBase
 {
+    [Authorize]
     [HttpPost("uploadFiles",Name = "UploadFiles")]
     public async Task<IActionResult> Upload(IFormFile file)
     {

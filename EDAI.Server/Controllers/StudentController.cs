@@ -7,14 +7,16 @@ using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class StudentController(EdaiContext context, IMapper mapper, IOpenAiService openAiService) : ControllerBase
 {
+    [Authorize]
     [HttpGet(Name = "GetStudents")]
     public async Task<IEnumerable<StudentDTO>> GetStudents()
     {
@@ -29,6 +31,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return students;
     }
 
+    [Authorize]
     [HttpGet("{id:int}", Name = "GetStudentById")]
     public async Task<IResult> GetById(int id)
     {
@@ -36,6 +39,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return student == null ? Results.NotFound() : Results.Ok(student);
     }
     
+    [Authorize]
     [HttpPost("generateStudentSummary/{id:int}", Name = "GenerateStudentSummary")]
     public async Task<IResult> GenerateStudentSummary(int id, [FromQuery] string connectionString)
     {
@@ -50,6 +54,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return Results.Accepted(null,response);
     }
     
+    [Authorize]
     [HttpGet("getStudentSummary/{summaryId:int}", Name = "GetStudentSummary")]
     public async Task<IResult> GetStudentSummary(int summaryId)
     {
@@ -60,6 +65,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return Results.Ok(studentSummaryDto);
     }
 
+    [Authorize]
     [HttpPost(Name = "AddStudent")]
     public async Task<IResult> AddStudent(Student student)
     {
@@ -68,6 +74,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return Results.Ok(student.StudentId);
     }
 
+    [Authorize]
     [HttpDelete("{id:int}", Name = "DeleteStudent")]
     public async Task<IResult> DeleteStudent(int id)
     {
@@ -78,6 +85,7 @@ public class StudentController(EdaiContext context, IMapper mapper, IOpenAiServi
         return Results.Ok(student);
     }
 
+    [Authorize]
     [HttpPut(Name = "UpdateStudent")]
     public async Task<IResult> UpdateStudent(Student student)
     {

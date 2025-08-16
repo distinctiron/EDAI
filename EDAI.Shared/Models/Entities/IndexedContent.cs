@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace EDAI.Shared.Models.Entities;
 
 public class IndexedContent
@@ -14,7 +16,7 @@ public class IndexedContent
     public string Content { get; set; }
     
     public int EssayId { get; set; }
-
+    
     public Essay? Essay { get; set; } = null!;
     
     public ICollection<FeedbackComment>? FeedbackComments { get; set; } = new List<FeedbackComment>();

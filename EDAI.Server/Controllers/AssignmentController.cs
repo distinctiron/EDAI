@@ -3,20 +3,23 @@ using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class AssignmentController(EdaiContext context, IMapper _mapper) : ControllerBase
 {   
+    [Authorize]
     [HttpGet(Name = "GetAssignments")]
     public async Task<IEnumerable<AssignmentDTO>> GetAssignments()
     {
         return _mapper.Map<IEnumerable<AssignmentDTO>>(await context.Assignments.ToListAsync());
     }
 
+    [Authorize]
     [HttpGet("{id:int}", Name = "GetAssignmentById")]
     public async Task<IResult> GetById(int id)
     {
@@ -24,6 +27,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         return assignment == null ? Results.NotFound() : Results.Ok(assignment);
     }
 
+    [Authorize]
     [HttpPost(Name = "AddAssignment")]
     public async Task<IResult> AddAssignment(AssignmentDTO assignment)
     {
@@ -50,6 +54,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         return Results.Ok(entity.AssignmentId);
     }
 
+    [Authorize]
     [HttpDelete("{id:int}", Name = "DeleteAssignment")]
     public async Task<IResult> DeleteAssignment(int id)
     {
@@ -60,6 +65,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         return Results.Ok(assignment);
     }
 
+    [Authorize]
     [HttpPut(Name = "UpdateAssignment")]
     public async Task<IResult> UpdateAssignment(Assignment assignment)
     {
@@ -68,6 +74,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         return Results.Ok(assignment);
     }
     
+    [Authorize]
     [HttpPost("{id:int}/uploadDocumentFile", Name = "UploadAssignmentReferenceFile")]
     public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
@@ -94,6 +101,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         return Results.Ok(assignment);
     }
 
+    [Authorize]
     [HttpGet("{id:int}/documentFile", Name = "DownloadAssignmentReferenceFile")]
     public async Task<IResult> DownloadFile(int id)
     {

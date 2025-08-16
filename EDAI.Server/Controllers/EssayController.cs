@@ -3,24 +3,27 @@ using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class EssayController(EdaiContext context, IMapper _mapper) : ControllerBase
 {
+    [Authorize]
     [HttpGet(Name = "GetEssays")]
     public async Task<IEnumerable<Essay>> GetEssays()
     {
         return await context.Essays
-            .Include(e => e.Assignment)
+            .Include(e => e.Assignment) 
             .Include(e => e.Student)
             .Include(e => e.IndexedEssay)
             .Include(e => e.Scores).ToListAsync();
     }
 
+    [Authorize]
     [HttpGet("{id:int}", Name = "GetEssaysById")]
     public async Task<Essay?> GetById(int id)
     {
@@ -33,6 +36,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return essay;
     }
 
+    [Authorize]
     [HttpPost(Name = "AddEssay")]
     public async Task<IResult> AddEssay(Essay essay)
     {
@@ -41,6 +45,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay.EssayId);
     }
 
+    [Authorize]
     [HttpPost("bulk", Name = "BulkAddEssay")]
     public async Task<IResult> BulkAddEssay(EssayFileDTO essay)
     {
@@ -57,6 +62,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay);
     }
 
+    [Authorize]
     [HttpDelete("{id:int}", Name = "DeleteEssay")]
     public async Task<IResult> DeleteEssay(int id)
     {
@@ -67,6 +73,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay);
     }
 
+    [Authorize]
     [HttpPut(Name = "UpdateEssay")]
     public async Task<IResult> UpdateEssay(Essay essay)
     {
@@ -75,6 +82,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay);
     }
     
+    [Authorize]
     [HttpPost("{id:int}/uploadDocumentFile", Name = "UploadEssayDocumentFile")]
     public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
@@ -101,6 +109,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay);
     }
 
+    [Authorize]
     [HttpGet("{id:int}/documentFile", Name = "DownloadEssayDocumentFile")]
     public async Task<IResult> DownloadFile(int id)
     {
@@ -112,6 +121,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.File(bytes, "application/octet-stream", document.DocumentName);
     }
 
+    [Authorize]
     [HttpPut("{id:int}/indexedContent", Name = "AddIndexedContent")]
     public async Task<IResult> AddIndexedContent([FromRoute]int id ,IndexedContent indexedContent)
     {
@@ -122,6 +132,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(essay.IndexedEssay);
     }
     
+    [Authorize]
     [HttpDelete("{id:int}/indexedContent", Name = "DeleteIndexedContent")]
     public async Task<IResult> DeleteIndexedEssay([FromRoute]int id, int indexedContentId)
     {
@@ -135,6 +146,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(indexedContentId);
     }
     
+    [Authorize]
     [HttpGet("{id:int}/indexedEssay", Name = "GetIndexedEssay")]
     public async Task<IResult> GetIndexedEssay([FromRoute]int id)
     {
@@ -142,6 +154,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return essay == null ? Results.NotFound() : Results.Ok(essay.IndexedEssay);
     }
 
+    [Authorize]
     [HttpPut("{id:int}/feedbackComment", Name = "AddFeedbackComment")]
     public async Task<IResult> AddFeedbackComment([FromRoute] int id, FeedbackComment feedbackComment)
     {
@@ -154,6 +167,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(feedbackComment);
     }
     
+    [Authorize]
     [HttpGet("{id:int}/feedbackComment", Name = "GetFeedbackComment")]
     public async Task<IResult> GetFeedbackComments([FromRoute]int id)
     {
@@ -171,6 +185,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
         return Results.Ok(feedbackComments);
     }
     
+    [Authorize]
     [HttpDelete("{id:int}/feedbackComment", Name = "DeleteFeedbackComment")]
     public async Task<IResult> DeleteFeedbackComment([FromRoute]int id, int feedbackCommentId)
     {

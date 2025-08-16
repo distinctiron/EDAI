@@ -1,14 +1,11 @@
 @page "/studentanalysis/{studentId:int}"
+@attribute [Authorize]
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using MudBlazor.Charts
-@using DocumentFormat.OpenXml.Office2010.ExcelAc
-@using EDAI.Client.Components
-@using EDAI.Shared.Exceptions
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.DTO.OpenAI
 @using EDAI.Shared.Models.Entities
-@using EDAI.Shared.Models.Enums
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
 @inject IDialogService DialogService
@@ -149,10 +146,10 @@
             PropertyNameCaseInsensitive = true
         };
         
-        _student = await _Client.GetFromJsonAsync<StudentDTO>($"Student/{studentId}", options);
+        _student = await _Client.GetFromJsonAsync<StudentDTO>($"api/student/{studentId}", options);
         
         
-        _studentAnalysis = await _Client.GetFromJsonAsync<StudentAnalysisDTO>($"Analytics/{studentId}", options);
+        _studentAnalysis = await _Client.GetFromJsonAsync<StudentAnalysisDTO>($"api/analytics/{studentId}", options);
         
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
@@ -173,7 +170,7 @@
 
             try
             {
-                _studentSummary = await _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}");
+                _studentSummary = await _Client.GetFromJsonAsync<StudentSummaryDTO>($"api/student/getStudentSummary/{summaryId}");
             }
             catch (Exception e)
             {
@@ -190,7 +187,7 @@
         _connectionString = _hubConnection.ConnectionId;
         var encodedConnectionString = Uri.EscapeDataString(_connectionString);
         
-        var response = await _Client.PostAsync($"Student/generateStudentSummary/{studentId}?connectionString={encodedConnectionString}",null);
+        var response = await _Client.PostAsync($"api/student/generateStudentSummary/{studentId}?connectionString={encodedConnectionString}",null);
 
         /*if (!response.IsSuccessStatusCode!)
         {
@@ -225,7 +222,7 @@
             throw new InvalidCastException($"Id candidate {id} could not be parsed to integer");
         }
 
-        _studentSummary = _Client.GetFromJsonAsync<StudentSummaryDTO>($"Student/getStudentSummary/{summaryId}").Result;
+        _studentSummary = _Client.GetFromJsonAsync<StudentSummaryDTO>($"api/student/getStudentSummary/{summaryId}").Result;
         
         _hasSummaryLoaded = true;
         

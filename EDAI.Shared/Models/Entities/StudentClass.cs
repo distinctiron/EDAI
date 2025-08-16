@@ -8,5 +8,5 @@ public class StudentClass
 
     public string Class { get; set; }
 
-    public string School { get; set; }
+    public Organisation Organisation { get; set; }
 }

@@ -1,5 +1,11 @@
-﻿@using iText.StyledXmlParser.Jsoup.Select
+﻿@using Blazored.LocalStorage
+@using EDAI.Client.Identity
+@using iText.StyledXmlParser.Jsoup.Select
+@using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject ILocalStorageService _LocalStorage
+@inject AuthenticationStateProvider AuthProvider
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -8,10 +14,23 @@
 <MudLayout>
     <MudAppBar Elevation="0" Color="Color.Transparent" Style="border-bottom: none; box-shadow: none;">
         <MudText Href="" Typo="Typo.h6" Class="ml-3">EDAI</MudText>
-        <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Review</MudNavLink>
-        <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
-        <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Configure</MudNavLink>
+        <AuthorizeView>
+            <Authorized>
+                <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Review</MudNavLink>
+                <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
+                <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Configure</MudNavLink>
+            </Authorized>
+        </AuthorizeView>
         <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" OnClick="@Logout"/>
+            </Authorized>
+            <NotAuthorized>
+                <MudIconButton Icon="@Icons.Material.Filled.Login" OnClick="@Login"/>
+            </NotAuthorized>
+        </AuthorizeView>
+        
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
     </MudAppBar>
     <MudMainContent Class="mt-15 pa-15 content-container" Style="height: 100vh;">
@@ -52,6 +71,18 @@
     private void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
+    }
+
+    private async Task Logout()
+    {
+        await _LocalStorage.RemoveItemAsync("authToken");
+        ((EdaiAuthStateProvider)AuthProvider).NotifyAuthenticationStateChanged();
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task Login()
+    {
+        Navigation.NavigateTo("/Login");
     }
 
     private readonly PaletteLight _lightPalette = new()
