@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using Blazored.LocalStorage;
 using EDAI.Client;
@@ -31,4 +32,13 @@ builder.Services.AddScoped<AuthenticationStateProvider, EdaiAuthStateProvider>()
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
+if (builder.HostEnvironment.IsProduction())
+{
+ using var temp = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)};
+ var config_prod = await temp.GetFromJsonAsync<AppCfg>("appsettings.json");
+ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(config_prod!.ApiBaseUrl) });
+}
+
 await builder.Build().RunAsync();
+
+public record AppCfg(string ApiBaseUrl);
