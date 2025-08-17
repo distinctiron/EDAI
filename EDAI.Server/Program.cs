@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 using Hangfire;
-using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.HttpOverrides;
 using DotNetEnv;
 using EDAI.Server.Tools;
 using Hangfire.PostgreSql;
@@ -30,6 +30,8 @@ builder.Configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 Console.WriteLine(connectionString);
+
+var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 
 builder.Services.AddDbContext<EdaiContext>(options => 
@@ -63,15 +65,34 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "MyAllowSpecificOrigins",
+    options.AddPolicy(name: "ClientPolicyProd",
+        policy =>
+        {
+            //policy.WithOrigins("localhost:44388");
+            //policy.AllowAnyOrigin().AllowAnyHeader();
+            //.AllowAnyMethod().AllowCredentials();
+
+            policy.WithOrigins(allowed);
+            policy.AllowAnyHeader();
+            policy.AllowAnyMethod();
+            //policy.WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+            //policy.AllowCredentials();
+        });
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "ClientPolicyDev",
         policy =>
         {
             //policy.WithOrigins("localhost:44388");
             policy.AllowAnyOrigin().AllowAnyHeader();
             //.AllowAnyMethod().AllowCredentials();
 
-            policy.WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
-            policy.AllowCredentials();
+            //policy.WithOrigins(allowed);
+            policy.AllowAnyMethod();
+            //policy.WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+            //policy.AllowCredentials();
         });
 });
 
@@ -255,9 +276,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
         
-    
+    app.UseCors("ClientPolicyDev");
     app.UseHangfireDashboard();
 }
+else
+{
+    app.UseCors("ClientPolicyProd");
+}
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+});
 
 app.UseHttpsRedirection();
 
