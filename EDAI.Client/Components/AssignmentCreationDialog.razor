@@ -90,7 +90,7 @@
         _assignmentDto.Open = true;
         _assignmentDto.StudentClasses = _assignmentClasses;
 
-        var assignmentRepsonse = await _Client.PostAsJsonAsync("api/Assignment/AddAssignment",_assignmentDto);
+        var assignmentRepsonse = await _Client.PostAsJsonAsync("api/Assignment",_assignmentDto);
 
         var assignmentId = await assignmentRepsonse.Content.ReadFromJsonAsync<int>();
 
@@ -111,6 +111,13 @@
                 MudDialog.Close(DialogResult.Ok(true));
             }
         }
+        else if(assignmentRepsonse.IsSuccessStatusCode)
+        {
+            Task.Delay(500);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        
+        
 
         _createdAssignment = true;
 

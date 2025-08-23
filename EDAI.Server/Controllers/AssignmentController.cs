@@ -35,8 +35,9 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         
         context.Assignments.Add(entity);
         
-        context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
+        /*
         var students = await context.Students.Where(x => assignment.StudentClasses.Contains(x.Class)).ToListAsync();
         
         foreach (var student in students)
@@ -44,12 +45,13 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
             context.Essays.Add(new Essay
             {
                 AssignmentId = entity.AssignmentId,
+                
                 Evaluated = false,
                 Student = student
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync();*/
         
         return Results.Ok(entity.AssignmentId);
     }
@@ -87,7 +89,7 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         EdaiDocument edaiDocument = new EdaiDocument
         {
             DocumentName = file.FileName, DocumentFileExtension = file.FileName.Split(".").Last(),
-            UploadDate = DateTime.Now
+            UploadDate = DateTime.UtcNow
         };
         edaiDocument.DocumentFile = memoryStream.ToArray();
 
