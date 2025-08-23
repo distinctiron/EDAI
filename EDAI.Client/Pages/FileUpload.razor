@@ -6,12 +6,15 @@
 @using EDAI.Shared.Exceptions
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Enums
+@using EDAI.Client.Hub
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient _Client
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
+@inject IHubConnectionFactory Hubs
 @inject IJSRuntime JS
+@inject AppCfg? AppConfig 
 
 
 <PageTitle>File Upload</PageTitle>
@@ -315,11 +318,13 @@
 
         _students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("api/student", options);
 
-        _hubConnection = new HubConnectionBuilder()
+        _hubConnection = await Hubs.Create("/messagehub");
+            
+            /*new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/messagehub"))
             .WithAutomaticReconnect()
             .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
-            .Build();
+            .Build();*/
 
         _hubConnection.On<string>("ScoreGenerated",HandleReviewCompletion);
 

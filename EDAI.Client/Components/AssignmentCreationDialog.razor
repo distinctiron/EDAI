@@ -79,7 +79,7 @@
             PropertyNameCaseInsensitive = true
         };
 
-        var students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("Student", options);
+        var students = await _Client.GetFromJsonAsync<IEnumerable<StudentDTO>>("api/Student", options);
 
         _studentClasses = students.Select(x => x.Class).Distinct();
     }
@@ -90,7 +90,7 @@
         _assignmentDto.Open = true;
         _assignmentDto.StudentClasses = _assignmentClasses;
 
-        var assignmentRepsonse = await _Client.PostAsJsonAsync("Assignment",_assignmentDto);
+        var assignmentRepsonse = await _Client.PostAsJsonAsync("api/Assignment/AddAssignment",_assignmentDto);
 
         var assignmentId = await assignmentRepsonse.Content.ReadFromJsonAsync<int>();
 
@@ -103,7 +103,7 @@
             
             content.Add(content:streamContent, name:"\"file\"", fileName:_referenceFile.Name); 
             
-            var fileResponse = await _Client.PostAsync($"Assignment/{assignmentId}/uploadDocumentFile", content);
+            var fileResponse = await _Client.PostAsync($"api/Assignment/{assignmentId}/uploadDocumentFile", content);
 
             if (fileResponse.IsSuccessStatusCode)
             {
