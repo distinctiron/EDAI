@@ -50,7 +50,7 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     public async Task<IResult> BulkAddEssay(EssayFileDTO essay)
     {
         
-        var entity = _mapper.Map<Essay>(essay);
+        var entity = _mapper.Map<Essay>(essay) ;
         entity.StudentId = entity.Student.StudentId;
         entity.Student = null;
         context.Essays.Add(entity);

@@ -71,7 +71,7 @@
             PropertyNameCaseInsensitive = true
         };
 
-        _scores = await _Client.GetFromJsonAsync<IEnumerable<ScoreDTO>>("Score", options);
+        _scores = await _Client.GetFromJsonAsync<IEnumerable<ScoreDTO>>("api/score", options);
     }
 
     public async Task DownloadFiles()

@@ -19,9 +19,11 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
 {
     [Authorize]
     [HttpGet(Name = "GetScores")]
-    public async Task<IEnumerable<Score>> GetScores()
+    public async Task<IEnumerable<ScoreDTO>> GetScores()
     {
-        return await context.Scores.ToListAsync();
+        var score = await context.Scores.ToListAsync();
+
+        return mapper.Map<IEnumerable<ScoreDTO>>(score);
     }
 
     [Authorize]
