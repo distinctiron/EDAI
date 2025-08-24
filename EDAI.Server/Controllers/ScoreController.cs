@@ -10,6 +10,7 @@ using EDAI.Shared.Models.Entities;
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace EDAI.Server.Controllers;
 
@@ -17,18 +18,33 @@ namespace EDAI.Server.Controllers;
 [Route("api/[controller]")]
 public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFileHandlerFactory, IOpenAiService openAiService, IMapper mapper) : ControllerBase
 {
+    private async Task<int?> GetUserOrganisationId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Organisation.OrganisationId)
+            .SingleOrDefaultAsync();
+    }
     [Authorize]
     [HttpGet(Name = "GetScores")]
     public async Task<IEnumerable<Score>> GetScores()
     {
-        return await context.Scores.ToListAsync();
+        var orgId = await GetUserOrganisationId();
+        return await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .Where(s => s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId)
+            .ToListAsync();
     }
 
     [Authorize]
     [HttpGet("{id:int}", Name = "GetScoresById")]
     public async Task<IResult> GetById(int id)
     {
-        var score = await context.Scores.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var score = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(s => s.ScoreId == id && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId);
         return score == null ? Results.NotFound() : Results.Ok(score);
     }
 
@@ -36,6 +52,11 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpPost(Name = "AddScore")]
     public async Task<IResult> AddScore(Score score)
     {
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == score.EssayId && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
+        if (essay == null) return Results.Forbid();
         context.Scores.Add(score);
         await context.SaveChangesAsync();
         return Results.Ok(score.ScoreId);
@@ -45,15 +66,22 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpPost("generatescores", Name = "GenerateScores")]
     public async Task<IResult> GenerateScores(GenerateScoreRequestDTO generateScoreRequestDto)
     {
+        var orgId = await GetUserOrganisationId();
+        var allowedDocs = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .Where(e => e.Student!.StudentClass.Organisation.OrganisationId == orgId)
+            .Select(e => e.EdaiDocumentId)
+            .ToListAsync();
+        if (generateScoreRequestDto.DocumentIds.Except(allowedDocs).Any()) return Results.Forbid();
 
         var jobId = BackgroundJob.Enqueue<IGenerateScoreService>(s => s.GenerateScore(generateScoreRequestDto.DocumentIds, generateScoreRequestDto.ConnectionId));
-        
+
         var response = new
         {
             Message = "Documents are being reviewed and scored",
             JobId = jobId
         };
-        
+
         return Results.Accepted(null, response);
     }
 
@@ -61,7 +89,10 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpDelete("{id:int}", Name = "DeleteScore")]
     public async Task<IResult> DeleteScore(int id)
     {
-        var score = await context.Scores.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var score = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(s => s.ScoreId == id && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (score == null) return Results.NotFound();
         context.Scores.Remove(score);
         context.SaveChangesAsync();
@@ -72,6 +103,11 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpPut(Name = "UpdateScore")]
     public async Task<IResult> UpdateScore(Score score)
     {
+        var orgId = await GetUserOrganisationId();
+        var exists = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .AnyAsync(s => s.ScoreId == score.ScoreId && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId);
+        if (!exists) return Results.NotFound();
         context.Scores.Update(score);
         await context.SaveChangesAsync();
         return Results.Ok(score);
@@ -81,7 +117,10 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpPost("{id:int}/uploadScoredDocumentFile", Name = "UploadScoredDocumentFile")]
     public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
-        var score = await context.Scores.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var score = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(s => s.ScoreId == id && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (score == null) return Results.NotFound();
         
         MemoryStream memoryStream = new MemoryStream();
@@ -108,9 +147,12 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
     public async Task<IResult> DownloadFile(int id)
     {
-        var score = await context.Scores.Where(s => s.EssayId == id)
+        var orgId = await GetUserOrganisationId();
+        var score = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .Where(s => s.EssayId == id && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId)
             .OrderByDescending(s => s.ScoreId)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
         if (score == null) return Results.NotFound();
         var document = await context.Documents.FindAsync(score.EvaluatedEssayDocumentId);
         if (document == null) return Results.NotFound();
@@ -122,11 +164,15 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
     public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
     {
-        var scores = await context.Scores.Where(s => ids.Contains(s.EssayId))
+        var orgId = await GetUserOrganisationId();
+        var scores = await context.Scores
+            .Include(s => s.Essay)!.ThenInclude(e => e.Student)!.ThenInclude(st => st.StudentClass).ThenInclude(sc => sc.Organisation)
+            .Where(s => ids.Contains(s.EssayId) && s.Essay!.Student!.StudentClass.Organisation.OrganisationId == orgId)
             .GroupBy(s => s.EssayId)
-            .Select( g => g.OrderByDescending( s => s.ScoreId).First())
-            .Select( s=> s.EvaluatedEssayDocumentId).ToListAsync();
-        
+            .Select(g => g.OrderByDescending(s => s.ScoreId).First())
+            .Select(s => s.EvaluatedEssayDocumentId)
+            .ToListAsync();
+
         var documents = await context.Documents.Where(d => scores.Contains(d.EdaiDocumentId)).ToListAsync();
 
         using var zipStream = new MemoryStream();
