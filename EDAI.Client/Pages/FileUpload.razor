@@ -69,7 +69,7 @@
                     <PropertyColumn Property="x => x.Item2.Name" Title="File Name" Editable="false"/>
                     <PropertyColumn Property="x => x.Item1.Student.FullName" Title="Student" Editable="true">
                         <EditTemplate>
-                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify First Name"/>
+                            <MudAutocomplete Immediate="true" @bind-Value="context.Item.Item1.Student.FullName" MaxItems="null" SearchFunc="SearchFirstName" Required="true" RequiredError="Please Specify Student"/>
                         </EditTemplate>
                     </PropertyColumn>
                     <TemplateColumn Title="Status">

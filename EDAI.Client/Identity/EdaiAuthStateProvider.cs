@@ -20,8 +20,8 @@ public class EdaiAuthStateProvider : AuthenticationStateProvider
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         var token = await _localStorage.GetItemAsync<string>("authToken");
-
-        if (String.IsNullOrWhiteSpace(token))
+        
+        if (!IsTokenValid(token))
         {
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
@@ -41,5 +41,19 @@ public class EdaiAuthStateProvider : AuthenticationStateProvider
         var jwt = handler.ReadJwtToken(token);
         var identity = new ClaimsIdentity(jwt.Claims, "jwt");
         return new ClaimsPrincipal(identity);
+    }
+
+    private bool IsTokenValid(string? token)
+    {
+        if (String.IsNullOrWhiteSpace(token))
+            return false;
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        if (jwt.ValidTo < DateTime.UtcNow)
+            return false;
+
+        return true;
     }
 }

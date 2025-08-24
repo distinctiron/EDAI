@@ -122,10 +122,16 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
     public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
     {
-        var scores = await context.Scores.Where(s => ids.Contains(s.EssayId))
+        var latestScoreIds = await context.Scores
+            .Where(s => ids.Contains(s.EssayId))
             .GroupBy(s => s.EssayId)
-            .Select( g => g.OrderByDescending( s => s.ScoreId).First())
-            .Select( s=> s.EvaluatedEssayDocumentId).ToListAsync();
+            .Select(g => g.Max(s => s.ScoreId))
+            .ToListAsync();
+
+        var scores = await context.Scores
+            .Where(s => latestScoreIds.Contains(s.ScoreId))
+            .Select(s => s.EvaluatedEssayDocumentId)
+            .ToListAsync();
         
         var documents = await context.Documents.Where(d => scores.Contains(d.EdaiDocumentId)).ToListAsync();
 

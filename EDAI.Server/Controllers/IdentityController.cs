@@ -97,20 +97,8 @@ public class IdentityController(EdaiContext context, UserManager<EDAIUser> userM
             return BadRequest(result.Errors.Select(e => e.Description));
         }
     }
-
-    [HttpGet("public",Name = "Public")]
-    public async Task<IActionResult> Public() => Ok("This is public");
-
-    [Authorize]
-    [HttpGet("protected",Name = "Protected")]
-    public async Task<IActionResult> Protected() => Ok("This is protected - accessible if you are logged in, no requirement for roles");
-
-    [Authorize(Roles = "Admin")]
-    [HttpGet("authorized",Name = "Authorized")]
-    public async Task<IActionResult> Authorised() =>
-        Ok("This is authorised - accessible if you are logged in, and have admin role");
-
-
+    
+    
 
 
 }
