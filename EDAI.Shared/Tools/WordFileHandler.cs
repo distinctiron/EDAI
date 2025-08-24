@@ -157,7 +157,8 @@ public class WordFileHandler : IDisposable
         {
             DocumentFile = getArrayFromStream(_reviewedDocumentStream),
             DocumentFileExtension = ".docx",
-            DocumentName = reviewedName
+            DocumentName = reviewedName,
+            UploadDate = DateTime.UtcNow
         }, _indexedContents);
     }
 

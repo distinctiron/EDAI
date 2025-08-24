@@ -193,7 +193,7 @@
         if (ids.Count() > 1)
         {
             var queryString = string.Join("&", ids.Select(id => $"ids={id}"));
-            var url = $"api/Score/bulkdownload?{queryString}";
+            var url = $"api/Score/bulklatestdownload?{queryString}";
 
             var response = await _Client.GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -208,7 +208,7 @@
         else
         {
             var id = ids.Single();
-            var response = await _Client.GetAsync($"api/score/{id}/downloadScoredDocumentFile");
+            var response = await _Client.GetAsync($"api/score/{id}/downloadLatestScoredDocumentFile");
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsByteArrayAsync();

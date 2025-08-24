@@ -21,9 +21,9 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     [HttpGet(Name = "GetScores")]
     public async Task<IEnumerable<ScoreDTO>> GetScores()
     {
-        var score = await context.Scores.ToListAsync();
+        var scores = await context.Scores.ToListAsync();
 
-        return mapper.Map<IEnumerable<ScoreDTO>>(score);
+        return GetScoreDtos(scores);
     }
 
     [Authorize]
@@ -107,22 +107,39 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
     }
 
     [Authorize]
-    [HttpGet("{id:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
-    public async Task<IResult> DownloadFile(int id)
+    [HttpGet("{essayId:int}/downloadLatestScoredDocumentFile", Name = "DownloadLatestScoredDocumentFile")]
+    public async Task<IResult> DownloadLatestFile(int essayId)
     {
-        var score = await context.Scores.Where(s => s.EssayId == id)
+        var score = await context.Scores.Where(s => s.EssayId == essayId)
             .OrderByDescending(s => s.ScoreId)
             .FirstAsync();
         if (score == null) return Results.NotFound();
         var document = await context.Documents.FindAsync(score.EvaluatedEssayDocumentId);
         if (document == null) return Results.NotFound();
+        var studentId = await context.Essays.Where(e => e.EssayId == score.EssayId).Select(e => e.StudentId).SingleAsync();
+        var student = await context.Students.Where(s => s.StudentId == studentId).SingleAsync();
         var bytes = document.DocumentFile!;
-        return Results.File(bytes, "application/octet-stream", document.DocumentName + document.DocumentFileExtension);
+        return Results.File(bytes, "application/octet-stream", document.DocumentName + student.FirstName + student.LastName + document.UploadDate.ToString("yyyyMMddHHmmss") + document.DocumentFileExtension);
+    }
+    
+    [Authorize]
+    [HttpGet("{scoreId:int}/downloadScoredDocumentFile", Name = "DownloadScoredDocumentFile")]
+    public async Task<IResult> DownloadFile(int scoreId)
+    {
+        var score = await context.Scores.Where(s => s.ScoreId == scoreId)
+            .SingleAsync();
+        if (score == null) return Results.NotFound();
+        var document = await context.Documents.FindAsync(score.EvaluatedEssayDocumentId);
+        if (document == null) return Results.NotFound();
+        var studentId = await context.Essays.Where(e => e.EssayId == score.EssayId).Select(e => e.StudentId).SingleAsync();
+        var student = await context.Students.Where(s => s.StudentId == studentId).SingleAsync();
+        var bytes = document.DocumentFile!;
+        return Results.File(bytes, "application/octet-stream", document.DocumentName + student.FirstName + student.LastName + document.UploadDate.ToString("yyyyMMddHHmmss") +document.DocumentFileExtension);
     }
 
     [Authorize]
-    [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
-    public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
+    [HttpGet("bulklatestdownload", Name = "DownloadLatestMultipleScoredDocumentFiles")]
+    public async Task<IResult> DownloadLatestMultipleFiles([FromQuery] List<int> ids)
     {
         var latestScoreIds = await context.Scores
             .Where(s => ids.Contains(s.EssayId))
@@ -142,7 +159,10 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         {
             foreach (var document in documents)
             {
-                var entry = archive.CreateEntry(document.DocumentName + document.DocumentFileExtension,
+                var essayId = context.Scores.Where( s => s.EvaluatedEssayDocumentId == document.EdaiDocumentId).Select(s => s.EssayId).Distinct().Single();
+                var studentId = context.Essays.Where(e => e.EssayId == essayId).Select(e => e.StudentId).Single();
+                var student = context.Students.Where(s => s.StudentId == studentId).Single();
+                var entry = archive.CreateEntry(document.DocumentName + student.FirstName + student.LastName + document.UploadDate.ToString("yyyyMMddHHmmss") + document.DocumentFileExtension,
                     CompressionLevel.Fastest);
                 using var entryStream = entry.Open();
                 entryStream.Write(document.DocumentFile, 0, document.DocumentFile.Length);
@@ -154,5 +174,59 @@ public class ScoreController(EdaiContext context, IWordFileHandlerFactory wordFi
         
         return Results.File(zipStream.ToArray(),"application/zip", "reviewedDocuments.zip");
 
+    }
+    
+    [Authorize]
+    [HttpGet("bulkdownload", Name = "DownloadMultipleScoredDocumentFiles")]
+    public async Task<IResult> DownloadMultipleFiles([FromQuery] List<int> ids)
+    {
+        var scores = await context.Scores
+            .Where(s => ids.Contains(s.ScoreId))
+            .Select(s => s.EvaluatedEssayDocumentId)
+            .ToListAsync();
+        
+        var documents = await context.Documents.Where(d => scores.Contains(d.EdaiDocumentId)).ToListAsync();
+
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen:true))
+        {
+            foreach (var document in documents)
+            {
+                var essayId = context.Scores.Where( s => s.EvaluatedEssayDocumentId == document.EdaiDocumentId).Select(s => s.EssayId).Distinct().Single();
+                var studentId = context.Essays.Where(e => e.EssayId == essayId).Select(e => e.StudentId).Single();
+                var student = context.Students.Where(s => s.StudentId == studentId).Single();
+                var entry = archive.CreateEntry(document.DocumentName + student.FirstName + student.LastName + document.UploadDate.ToString("yyyyMMddHHmmss") + document.DocumentFileExtension,
+                    CompressionLevel.Fastest);
+                using var entryStream = entry.Open();
+                entryStream.Write(document.DocumentFile, 0, document.DocumentFile.Length);
+                
+            }
+        }
+
+        zipStream.Position = 0;
+        
+        return Results.File(zipStream.ToArray(),"application/zip", "reviewedDocuments.zip");
+
+    }
+
+    private IEnumerable<ScoreDTO> GetScoreDtos(IEnumerable<Score> scores)
+    {
+        foreach (var score in scores)
+        {
+            var essay = context.Essays.Where(e => e.EssayId == score.EssayId).Single();
+            var student = context.Students.Where(s => s.StudentId == essay.StudentId).Single();
+            var studentClass = context.StudentClasses.Where(sc => sc.StudentClassId == student.StudentClassId).Single();
+            var assignment = context.Assignments.Where(a => a.AssignmentId == score.Essay.AssignmentId)
+                .Single();
+
+            var scoreDto = mapper.Map<Score, ScoreDTO>(score);
+            scoreDto.StudentId = student.StudentId;
+            scoreDto.StudentClass = studentClass.Class;
+            scoreDto.StudentFirstName = student.FirstName;
+            scoreDto.StudentLastName = student.LastName;
+            scoreDto.AssignmentName = assignment.Name;
+
+            yield return scoreDto;
+        }
     }
 }

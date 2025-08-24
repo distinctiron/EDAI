@@ -2,15 +2,18 @@
 
 public class ScoreDTO
 {
-    public Student Student { get; set; }
+    public int? StudentId { get; set; }
 
+    public string StudentFirstName { get; set; }
+
+    public string StudentLastName { get; set; }
+    
+    public string StudentClass { get; set; }
     public string AssignmentName { get; set; }
     
     public int ScoreId { get; set; }
     
     public int EssayId { get; set; }
-    
-    public Essay? Essay { get; set; }
     public float OverallScore { get; set; }
     
     public float ArgumentationScore { get; set; }
@@ -24,7 +27,6 @@ public class ScoreDTO
     public string EloquenceRecommendation { get; set; }
     
     public int? EvaluatedEssayDocumentId { get; set; }
-    public EdaiDocument? EvaluatedEssayDocument { get; set; }
     
     public string OverallStructure { get; set; }
     
