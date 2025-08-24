@@ -5,18 +5,36 @@ using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace EDAI.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AnalyticsController(EdaiContext context, IMapper _mapper) : ControllerBase
-{   
+{
+    private async Task<int?> GetUserOrganisationId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Organisation.OrganisationId)
+            .SingleOrDefaultAsync();
+    }
     [Authorize]
     [HttpGet("{id:int}", Name = "GetStudentAnalytics")]
     public async Task<IResult> GetStudentAnalytics(int id)
     {
-        var essays = await context.Essays.Where(e => e.StudentId == id).ToListAsync();
+        var orgId = await GetUserOrganisationId();
+        var studentExists = await context.Students
+            .Include(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .AnyAsync(s => s.StudentId == id && s.StudentClass.Organisation.OrganisationId == orgId);
+        if (!studentExists) return Results.NotFound();
+
+        var essays = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .Where(e => e.StudentId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId)
+            .ToListAsync();
 
         var essayAnalyses = GetEssayAnalyses(essays);
 

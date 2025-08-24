@@ -5,6 +5,7 @@ using EDAI.Shared.Models.DTO;
 using EDAI.Shared.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace EDAI.Server.Controllers;
 
@@ -12,34 +13,51 @@ namespace EDAI.Server.Controllers;
 [Route("api/[controller]")]
 public class EssayController(EdaiContext context, IMapper _mapper) : ControllerBase
 {
+    private async Task<int?> GetUserOrganisationId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Organisation.OrganisationId)
+            .SingleOrDefaultAsync();
+    }
     [Authorize]
     [HttpGet(Name = "GetEssays")]
     public async Task<IEnumerable<Essay>> GetEssays()
     {
+        var orgId = await GetUserOrganisationId();
         return await context.Essays
-            .Include(e => e.Assignment) 
-            .Include(e => e.Student)
+            .Include(e => e.Assignment)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
             .Include(e => e.IndexedEssay)
-            .Include(e => e.Scores).ToListAsync();
+            .Include(e => e.Scores)
+            .Where(e => e.Student!.StudentClass.Organisation.OrganisationId == orgId)
+            .ToListAsync();
     }
 
     [Authorize]
     [HttpGet("{id:int}", Name = "GetEssaysById")]
     public async Task<Essay?> GetById(int id)
     {
-        var essay = await context.Essays
+        var orgId = await GetUserOrganisationId();
+        return await context.Essays
             .Include(e => e.Assignment)
-            .Include(e => e.Student)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
             .Include(e => e.Scores)
             .Include(e => e.IndexedEssay)
-            .SingleOrDefaultAsync(e => e.EssayId == id);
-        return essay;
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
     }
 
     [Authorize]
     [HttpPost(Name = "AddEssay")]
     public async Task<IResult> AddEssay(Essay essay)
     {
+        var orgId = await GetUserOrganisationId();
+        var student = await context.Students
+            .Include(s => s.StudentClass)
+            .ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(s => s.StudentId == essay.StudentId && s.StudentClass.Organisation.OrganisationId == orgId);
+        if (student == null) return Results.Forbid();
         context.Essays.Add(essay);
         await context.SaveChangesAsync();
         return Results.Ok(essay.EssayId);
@@ -49,15 +67,19 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpPost("bulk", Name = "BulkAddEssay")]
     public async Task<IResult> BulkAddEssay(EssayFileDTO essay)
     {
-        
+        var orgId = await GetUserOrganisationId();
         var entity = _mapper.Map<Essay>(essay);
+        var student = await context.Students
+            .Include(s => s.StudentClass)
+            .ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(s => s.StudentId == entity.Student!.StudentId && s.StudentClass.Organisation.OrganisationId == orgId);
+        if (student == null) return Results.Forbid();
         entity.StudentId = entity.Student.StudentId;
         entity.Student = null;
         context.Essays.Add(entity);
         await context.SaveChangesAsync();
 
         essay.EssayId = entity.EssayId;
-
 
         return Results.Ok(essay);
     }
@@ -66,7 +88,10 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpDelete("{id:int}", Name = "DeleteEssay")]
     public async Task<IResult> DeleteEssay(int id)
     {
-        var essay = await context.Essays.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         context.Essays.Remove(essay);
         await context.SaveChangesAsync();
@@ -77,6 +102,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpPut(Name = "UpdateEssay")]
     public async Task<IResult> UpdateEssay(Essay essay)
     {
+        var orgId = await GetUserOrganisationId();
+        var exists = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .AnyAsync(e => e.EssayId == essay.EssayId && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
+        if (!exists) return Results.NotFound();
         context.Essays.Update(essay);
         await context.SaveChangesAsync();
         return Results.Ok(essay);
@@ -86,7 +116,10 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpPost("{id:int}/uploadDocumentFile", Name = "UploadEssayDocumentFile")]
     public async Task<IResult> UploadFile([FromRoute]int id, IFormFile file)
     {
-        var essay = await context.Essays.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         
         MemoryStream memoryStream = new MemoryStream();
@@ -113,7 +146,10 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpGet("{id:int}/documentFile", Name = "DownloadEssayDocumentFile")]
     public async Task<IResult> DownloadFile(int id)
     {
-        var essay = await context.Essays.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         var document = await context.Documents.FindAsync(essay.EdaiDocumentId);
         if (document == null) return Results.NotFound();
@@ -125,7 +161,10 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpPut("{id:int}/indexedContent", Name = "AddIndexedContent")]
     public async Task<IResult> AddIndexedContent([FromRoute]int id ,IndexedContent indexedContent)
     {
-        var essay = await context.Essays.FindAsync(id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         essay.IndexedEssay!.Add(indexedContent);
         await context.SaveChangesAsync();
@@ -136,7 +175,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpDelete("{id:int}/indexedContent", Name = "DeleteIndexedContent")]
     public async Task<IResult> DeleteIndexedEssay([FromRoute]int id, int indexedContentId)
     {
-        var essay = await context.Essays.Include(e => e.IndexedEssay).SingleOrDefaultAsync( e => e.EssayId == id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.IndexedEssay)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         var indexedContent = essay.IndexedEssay.SingleOrDefault( idc => idc.IndexedContentId == indexedContentId);
         if (indexedContent == null) return Results.NotFound();
@@ -150,7 +193,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpGet("{id:int}/indexedEssay", Name = "GetIndexedEssay")]
     public async Task<IResult> GetIndexedEssay([FromRoute]int id)
     {
-        var essay = await context.Essays.Include( e => e.IndexedEssay).ThenInclude( idc => idc.FeedbackComments).SingleOrDefaultAsync(e => e.EssayId == id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.IndexedEssay)!.ThenInclude(idc => idc.FeedbackComments)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         return essay == null ? Results.NotFound() : Results.Ok(essay.IndexedEssay);
     }
 
@@ -158,7 +205,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpPut("{id:int}/feedbackComment", Name = "AddFeedbackComment")]
     public async Task<IResult> AddFeedbackComment([FromRoute] int id, FeedbackComment feedbackComment)
     {
-        var essay = await context.Essays.Include(e => e.IndexedEssay).SingleOrDefaultAsync( e => e.EssayId == id);
+        var orgId = await GetUserOrganisationId();
+        var essay = await context.Essays
+            .Include(e => e.IndexedEssay)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         //var indexedContents = essay.IndexedEssay.Where( idc => feedbackComment.RelatedText.Select( c => c.IndexedContentId).Contains() );
         //if (!indexedContents.Any() || indexedContents is null) return Results.NotFound();
@@ -171,10 +222,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpGet("{id:int}/feedbackComment", Name = "GetFeedbackComment")]
     public async Task<IResult> GetFeedbackComments([FromRoute]int id)
     {
+        var orgId = await GetUserOrganisationId();
         var essay = await context.Essays
-            .Include(e => e.IndexedEssay)
-            .ThenInclude( idc => idc.FeedbackComments)
-            .SingleOrDefaultAsync( e => e.EssayId == id);
+            .Include(e => e.IndexedEssay)!.ThenInclude(idc => idc.FeedbackComments)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         var indexedEssay = essay.IndexedEssay;
         var feedbackComments = new List<FeedbackComment>();
@@ -189,10 +241,11 @@ public class EssayController(EdaiContext context, IMapper _mapper) : ControllerB
     [HttpDelete("{id:int}/feedbackComment", Name = "DeleteFeedbackComment")]
     public async Task<IResult> DeleteFeedbackComment([FromRoute]int id, int feedbackCommentId)
     {
+        var orgId = await GetUserOrganisationId();
         var essay = await context.Essays
-            .Include(e => e.IndexedEssay)
-            .ThenInclude( idc => idc.FeedbackComments)
-            .SingleOrDefaultAsync( e => e.EssayId == id);
+            .Include(e => e.IndexedEssay)!.ThenInclude(idc => idc.FeedbackComments)
+            .Include(e => e.Student)!.ThenInclude(s => s.StudentClass).ThenInclude(sc => sc.Organisation)
+            .SingleOrDefaultAsync(e => e.EssayId == id && e.Student!.StudentClass.Organisation.OrganisationId == orgId);
         if (essay == null) return Results.NotFound();
         var feedbackComment = await context.FeedbackComments.Include( fc => fc.RelatedTexts).SingleOrDefaultAsync( fc => fc.FeedbackCommentId == feedbackCommentId);
         if (feedbackComment == null) return Results.NotFound();
