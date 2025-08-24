@@ -3,7 +3,6 @@
     justify-content: center;     /* Horizontal centering */
     flex-direction: column;
     width: 40%;               /* Makes the container as tall as the viewport */
-    margin-bottom: -8rem;
 }
 
 .logo-container{
