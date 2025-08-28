@@ -89,20 +89,20 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         EdaiDocument edaiDocument = new EdaiDocument
         {
             DocumentName = file.FileName, DocumentFileExtension = file.FileName.Split(".").Last(),
+            AssignmentId = id,
             UploadDate = DateTime.UtcNow
         };
         edaiDocument.DocumentFile = memoryStream.ToArray();
 
         context.Documents.Add(edaiDocument);
         
-        assignment.ReferenceDocument = edaiDocument;
         context.Assignments.Update(assignment);
         
         await context.SaveChangesAsync();
 
         return Results.Ok(assignment);
     }
-
+/*
     [Authorize]
     [HttpGet("{id:int}/documentFile", Name = "DownloadAssignmentReferenceFile")]
     public async Task<IResult> DownloadFile(int id)
@@ -113,5 +113,5 @@ public class AssignmentController(EdaiContext context, IMapper _mapper) : Contro
         if (document == null) return Results.NotFound();
         var bytes = document.DocumentFile!;
         return Results.File(bytes, "application/octet-stream", document.DocumentName);
-    }
+    } */
 }

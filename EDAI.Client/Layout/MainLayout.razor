@@ -12,13 +12,32 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudAppBar Elevation="0" Color="Color.Transparent" Style="border-bottom: none; box-shadow: none;">
-        <MudText Href="" Typo="Typo.h6" Class="ml-3">EDAI</MudText>
+    <MudAppBar Elevation="2" Style="border-bottom: none; box-shadow: none;">
+        <MudLink Underline="Underline.None" Color="Color.Default" Href="" Typo="Typo.h6" Class="mx-3">EDAI</MudLink>
         <AuthorizeView>
             <Authorized>
-                <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Review</MudNavLink>
-                <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Analyze</MudNavLink>
-                <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Configure</MudNavLink>
+
+                <MudMenu Class="menu-head" Label="Review">
+                    <MudMenuItem>
+                        <MudNavLink Href="fileupload" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Upload files</MudNavLink>
+                    </MudMenuItem>
+                    <MudMenuItem>
+                        <MudNavLink Href="review" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Reviewed files</MudNavLink>    
+                    </MudMenuItem>
+                </MudMenu>
+
+                <MudMenu Class="menu-head" Label="Manage">
+                    <MudMenuItem>
+                        <MudNavLink Href="manage-essays" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Essays</MudNavLink>        
+                    </MudMenuItem>
+                    <MudMenuItem>
+                        <MudNavLink Href="manage-students" Match="NavLinkMatch.Prefix" Style="text-decoration: none; color: inherit; width: auto;">Students</MudNavLink>
+                    </MudMenuItem>
+                </MudMenu>
+                    
+
+                
+                
             </Authorized>
         </AuthorizeView>
         <MudSpacer />
@@ -49,6 +68,7 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode = false;
     private MudTheme? _theme = null;
+
 
     protected override void OnInitialized()
     {

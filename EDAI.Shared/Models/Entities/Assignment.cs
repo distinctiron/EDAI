@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using EDAI.Shared.Models.Enums;
 
 namespace EDAI.Shared.Models.Entities;
 
@@ -11,10 +12,9 @@ public class Assignment
     public string Description { get; set; }
 
     public bool Open { get; set; } = true;
+
+    public AssignmentType AssignmentType { get; set; } = AssignmentType.HTX;
     
-    public int? ReferenceDocumentId { get; set; }
-    
-    public EdaiDocument? ReferenceDocument { get; set; }
 
     public ICollection<Essay>? Essays { get; } = new List<Essay>();
 }

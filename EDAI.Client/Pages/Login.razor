@@ -15,12 +15,16 @@
 <MudGrid Justify="Justify.Center">
     <MudItem xs="4">
         <MudPaper Class="pa-5">
-            <MudForm Model="@model" @ref="@form" @bind-IsValid="@validCredentials" @bind-Errors="@errors">
+            <MudForm Class="pb-1" Model="@model" @ref="@form" @bind-IsValid="@validCredentials" @bind-Errors="@errors">
                 <MudTextField Class="ma-2" @bind-Value="model.Email" T="string" Label="Email" Required="true" RequiredError="Please specify email" 
                               Validation="@(new EmailAddressAttribute(){ErrorMessage="Invalid email address"})"/>
                 <MudTextField Class="ma-2" @bind-Value="model.Password" T="string" InputType="InputType.Password" Label="Password" Required="true" RequiredError="Please specify password"/>
                 <MudButton Class="mt-2" OnClick="@(async () => await Submit())" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!validCredentials)">Log in</MudButton>
             </MudForm>
+            @if (errorMessageOnLogin?.Length > 0)
+            {
+                <MudChip T="string" Color="Color.Error">Invalid Credentials</MudChip>
+            }
 
         </MudPaper>
     </MudItem>
@@ -29,7 +33,7 @@
 @code {
     MudForm form;
     string[] errors;
-    string errorMessageOnLogin;
+    string errorMessageOnLogin = String.Empty;
     bool validCredentials;
     LoginRequestDto model = new LoginRequestDto();
 

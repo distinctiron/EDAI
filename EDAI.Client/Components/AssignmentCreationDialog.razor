@@ -4,6 +4,7 @@
 @using DocumentFormat.OpenXml.Wordprocessing
 @using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.DTO.OpenAI
+@using EDAI.Shared.Models.Enums
 @using Color = MudBlazor.Color
 @inject HttpClient _Client
 @using Microsoft.AspNetCore.Http
@@ -30,23 +31,44 @@
                             <MudSelectItem T="string" Value="@studentClass">@studentClass</MudSelectItem>
                         }
                     </MudSelect>
+                    <MudSelect T="AssignmentType" @bind-Value="_assignmentType" Label="Assignment Type" MultiSelection="false">
+                        @foreach (AssignmentType assignmentType in AssignmentType.GetValuesAsUnderlyingType<AssignmentType>())
+                        {
+                        <MudSelectItem T="AssignmentType" Value="@assignmentType">@assignmentType.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
                 </MudCardContent>
                 <div class="d-flex align-center justify-space-between">
-                    <MudFileUpload Class="pl-5 pb-5" T="IBrowserFile" FilesChanged="UploadFiles" Accept=".pdf" Required="false">
+                    <MudFileUpload Class="pl-5 pb-5" T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept=".pdf" Required="false">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Secondary"
                                        StartIcon="@Icons.Material.Filled.AttachFile">
                                 Attach Reference File
                             </MudButton>
-                            @if (_referenceFile is not null)
+                            @if (_referenceFiles is not null && _referenceFiles.Count > 0)
                             {
-                                <MudChip T = "string"> @_referenceFile.Name</MudChip>
+                                @foreach (var file in _referenceFiles)
+                                {
+                                    <MudChip T = "string"> @file.Name</MudChip>
+                                }
                             }
                         </ActivatorContent>
                     </MudFileUpload>
                     <MudCardActions Class="pr-5 pb-5">
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
+                        
+                            @if (!_assignmentUnderCreation)
+                            {
+                                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Create</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">
+                                    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+                                </MudButton>
+                            }
+
+                        
                     </MudCardActions>
                 </div>
             </MudCard>
@@ -60,16 +82,19 @@
     private IMudDialogInstance MudDialog { get; set; }
     
     private bool _createdAssignment = false;
-    private string _selectedClass = "No class selected";
+    private bool _assignmentUnderCreation = false;
+    private string _selectedClass = String.Empty;
     private bool _validForm;
     private AssignmentDTO _assignmentDto = new AssignmentDTO();
-    private IBrowserFile _referenceFile;
+    private IReadOnlyList<IBrowserFile> _referenceFiles;
     
     private const long maxFileSize = 10 * 1024 * 1024;
 
     private IEnumerable<string> _studentClasses = new List<string>();
 
     private IEnumerable<string> _assignmentClasses = new HashSet<string>();
+
+    private AssignmentType _assignmentType;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,30 +111,38 @@
 
     private async void CreateAssignmentAsync(EditContext context)
     {
-
+        _assignmentUnderCreation = true;
+        StateHasChanged();
+        
         _assignmentDto.Open = true;
         _assignmentDto.StudentClasses = _assignmentClasses;
+        _assignmentDto.AssignmentType = _assignmentType;
 
         var assignmentRepsonse = await _Client.PostAsJsonAsync("api/Assignment",_assignmentDto);
 
         var assignmentId = await assignmentRepsonse.Content.ReadFromJsonAsync<int>();
 
-        if (_referenceFile is not null)
+        if (_referenceFiles is not null && _referenceFiles.Count > 0)
         {
-            using var content = new MultipartFormDataContent();
-            var streamContent = new StreamContent(_referenceFile.OpenReadStream(maxFileSize));
-
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(_referenceFile.ContentType);
-            
-            content.Add(content:streamContent, name:"\"file\"", fileName:_referenceFile.Name); 
-            
-            var fileResponse = await _Client.PostAsync($"api/Assignment/{assignmentId}/uploadDocumentFile", content);
-
-            if (fileResponse.IsSuccessStatusCode)
+            foreach (var file in _referenceFiles)
             {
-                Task.Delay(500);
-                MudDialog.Close(DialogResult.Ok(true));
+                using var content = new MultipartFormDataContent();
+                var streamContent = new StreamContent(file.OpenReadStream(maxFileSize));
+
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            
+                content.Add(content:streamContent, name:"\"file\"", fileName:file.Name); 
+            
+                var fileResponse = await _Client.PostAsync($"api/Assignment/{assignmentId}/uploadDocumentFile", content);
+
+                if (!fileResponse.IsSuccessStatusCode)
+                {
+                    break;
+                }
             }
+            
+            Task.Delay(500);
+            MudDialog.Close(DialogResult.Ok(true));
         }
         else if(assignmentRepsonse.IsSuccessStatusCode)
         {
@@ -123,13 +156,13 @@
 
         _assignmentDto = new AssignmentDTO();
 
-        _referenceFile = null;
+        _referenceFiles = null;
         
         StateHasChanged();
     }
 
-    private async Task UploadFiles(IBrowserFile file)
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
-        _referenceFile = file;
+        _referenceFiles = files;
     }
 }

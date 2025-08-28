@@ -6,7 +6,7 @@ namespace EDAI.Services.Interfaces;
 
 public interface IOpenAiService
 {
-    public void InitiateScoreConversation(string essayText, string assignmentDescription, string referencetext = null);
+    public void InitiateScoreConversation(string essayText, string assignmentDescription, AssignmentType assignmentType,  IEnumerable<string> referenceTexts);
     public void InitiateStudentSummaryConversation();
     public Task<IEnumerable<FeedbackComment>> GetCommentsAsync(CommentType commentType, string prompt);
     public Task<string> GetFeedbackAsync(string prompt);

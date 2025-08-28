@@ -11,4 +11,8 @@ public class EdaiDocument
     public DateTime UploadDate { get; set; }
     
     public byte[] DocumentFile { get; set; }
+    
+    public int? AssignmentId { get; set; }
+
+    public Assignment? Assignment { get; set; }
 }

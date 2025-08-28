@@ -28,14 +28,10 @@ public class OpenAiService : IOpenAiService
     private IMapper _mapper;
 
     private static string keyFromEnvironment =
-        //"14iJ5AHR1VzKxf8yHNmWWqEFGPKz41zIo06oG816TufVbeKNyDwKJQQJ99AKACfhMk5XJ3w3AAABACOGRcGt"; 
-        //"9qI35RSMYA99C35ZuyV3zmJ7KQw3OYZgNDTvh8BQg8StXOvABkV8JQQJ99BEACfhMk5XJ3w3AAABACOGG3J8";
-        //Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
         Environment.GetEnvironmentVariable("OPENAI_API_KEY")
         ?? throw new InvalidOperationException("OPENAI_API_KEY is not set.");
     
     private static AzureOpenAIClient _openAiClient = new(
-        //new Uri("https://edai-llm.openai.azure.com"), 
         new Uri("https://edai-v2.openai.azure.com/"),
         
         new ApiKeyCredential(keyFromEnvironment),
@@ -54,16 +50,29 @@ public class OpenAiService : IOpenAiService
 
     private static ChatClient _client = _openAiClient.GetChatClient("gpt-4o-edai");
 
-    public void InitiateScoreConversation(string essayText, string assignmentDescription, string referencetext = null)
+    private static AssignmentType _assignmentType;
+
+    public void InitiateScoreConversation(string essayText, string assignmentDescription, AssignmentType assignmentType, IEnumerable<string> referencetexts)
     {
-        messages.Add(new SystemChatMessage(TextEvaluatingPrompts.SystemRole.Prompt));
-        messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideAssignmentContextPrompt(assignmentDescription,referencetext)));
+        _assignmentType = assignmentType;
+        switch (_assignmentType)
+        {
+            case AssignmentType.HTX:
+                messages.Add(new SystemChatMessage(TextEvaluatingPrompts.SystemRoleHTX.Prompt));
+                break;
+            case AssignmentType.STX:
+                messages.Add(new SystemChatMessage(TextEvaluatingPrompts.SystemRole.Prompt));
+                break;
+            default:
+                throw new Exception("Invalid Area Type");
+        }
+        messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideAssignmentContextPrompt(assignmentDescription,referencetexts)));
         messages.Add(new UserChatMessage(TextEvaluatingPrompts.ProvideEssay(essayText)));
     }
 
     public void InitiateStudentSummaryConversation()
     {
-        messages.Add(TextEvaluatingPrompts.SystemRoleStudent.Prompt);
+        messages.Add(TextEvaluatingPrompts.SystemRoleStudentAnalysis.Prompt);
     }
 
     public void AddChatAssistantMessage(string answer)
@@ -368,22 +377,37 @@ public class OpenAiService : IOpenAiService
     {
         var returnValue = new AreaPrompts();
         
-        switch (area)
+        switch (area,_assignmentType)
         {
-            case CommentType.Grammar:
+            case (CommentType.Grammar,AssignmentType.STX):
                 returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideGrammarComments.Prompt;
                 returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendation.Prompt;
                 returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammar.Prompt;
                 break;
-            case CommentType.Eloquence:
+            case (CommentType.Grammar,AssignmentType.HTX):
+                returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideGrammarCommentsHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammarHTX.Prompt;
+                break;
+            case (CommentType.Eloquence,AssignmentType.STX):
                 returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideEloquenceComments.Prompt;
                 returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendation.Prompt;
                 returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquence.Prompt;
                 break;
-            case CommentType.Logic:
+            case (CommentType.Eloquence,AssignmentType.HTX):
+                returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideEloquenceCommentsHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquenceHTX.Prompt;
+                break;
+            case (CommentType.Logic,AssignmentType.STX):
                 returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideArgumentComments.Prompt;
                 returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveArgumentationRecommendation.Prompt;
                 returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreArgumentation.Prompt;
+                break;
+            case (CommentType.Logic,AssignmentType.HTX):
+                returnValue.CommentPrompt = TextEvaluatingPrompts.ProvideArgumentCommentsHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveArgumentationRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreArgumentationHTX.Prompt;
                 break;
             default:
                 throw new Exception("Invalid Area Type");
@@ -396,17 +420,27 @@ public class OpenAiService : IOpenAiService
     {
         var returnValue = new FeedbackPrompts();
         
-        switch (area)
+        switch (area,_assignmentType)
         {
-            case FeedbackType.Structure:
+            case (FeedbackType.Structure,AssignmentType.STX):
                 returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideGrammarComments.Prompt;
                 returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendation.Prompt;
                 returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammar.Prompt;
                 break;
-            case FeedbackType.AssignmentAnswer:
+            case (FeedbackType.Structure,AssignmentType.HTX):
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideGrammarCommentsHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammarHTX.Prompt;
+                break;
+            case (FeedbackType.AssignmentAnswer,AssignmentType.STX):
                 returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideEloquenceComments.Prompt;
                 returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendation.Prompt;
                 returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquence.Prompt;
+                break;
+            case (FeedbackType.AssignmentAnswer,AssignmentType.HTX):
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideEloquenceCommentsHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquenceHTX.Prompt;
                 break;
             default:
                 throw new Exception("Invalid Area Type");

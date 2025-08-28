@@ -9,6 +9,7 @@ using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 
 namespace EDAI.Server.Jobs;
 
@@ -31,12 +32,16 @@ public class GenerateScoreService(IWordFileHandlerFactory wordFileHandlerFactory
 
             foreach (var assignment in assignments)
             {
-                string referenceText = null;
+                List<string> referenceTexts = new List<string>();
 
+                var referenceDocuments = await context.Documents.Where(d => d.AssignmentId == assignment.AssignmentId).ToListAsync();
 
-                if (assignment?.ReferenceDocument?.DocumentFileExtension == "pdf")
+                foreach (var reference in referenceDocuments)
                 {
-                    referenceText = await PdfFileHandler.ExtractTextFromPdf(assignment.ReferenceDocument.DocumentFile);
+                    if (reference.DocumentFileExtension == "pdf")
+                    {
+                        referenceTexts.Add(await PdfFileHandler.ExtractTextFromPdf(reference.DocumentFile));
+                    }
                 }
                 
                 foreach (var document in documents)
@@ -55,7 +60,7 @@ public class GenerateScoreService(IWordFileHandlerFactory wordFileHandlerFactory
                         {
                             var essayText = wordFileHandler.GetDocumentText();
 
-                            openAiService.InitiateScoreConversation(essayText, assignment.Description, referenceText);
+                            openAiService.InitiateScoreConversation(essayText, assignment.Description, assignment.AssignmentType ,referenceTexts);
 
                             var generatedScore = await openAiService.AssessEssayAsync();
 

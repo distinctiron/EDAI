@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EDAI.Shared.Models.Enums;
 
 namespace EDAI.Shared.Models.DTO;
 
@@ -17,4 +18,6 @@ public class AssignmentDTO
     public bool Open { get; set; } = true;
     
     public int? ReferenceDocumentId { get; set; }
+
+    public AssignmentType AssignmentType { get; set; }
 }
