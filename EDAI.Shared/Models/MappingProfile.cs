@@ -15,6 +15,8 @@ public class MappingProfile : Profile
         CreateMap<EssayFileDTO,Essay>()
             .ForMember(e => e.EssayId, 
                 o => o.Ignore());
+        CreateMap<Essay, EssayDTO>();
+        CreateMap<EssayDTO, Essay>();
         CreateMap<Assignment, AssignmentDTO>();
         CreateMap<AssignmentDTO, Assignment>();
         CreateMap<Student, StudentDTO>();
@@ -25,5 +27,11 @@ public class MappingProfile : Profile
         CreateMap<StudentSummary, StudentSummaryDTO>();
         CreateMap<Score, ScoreDTO>();
         CreateMap<ScoreDTO, Score>();
+        CreateMap<Student, StudentDTO>();
+        CreateMap<StudentDTO, Student>();
+        CreateMap<StudentClass, StudentClassDTO>();
+        CreateMap<StudentClassDTO, StudentClass>();
+        CreateMap<Organisation, OrganisationDto>();
+        CreateMap<OrganisationDto, Organisation>();
     }
 }

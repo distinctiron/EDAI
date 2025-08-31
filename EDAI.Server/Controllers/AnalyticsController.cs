@@ -16,50 +16,78 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
     [HttpGet("{id:int}", Name = "GetStudentAnalytics")]
     public async Task<IResult> GetStudentAnalytics(int id)
     {
-        var essays = await context.Essays.Where(e => e.StudentId == id).ToListAsync();
+        var essays = context.Essays.Where(e => e.StudentId == id && e.Scores.Count > 0);
 
         var essayAnalyses = GetEssayAnalyses(essays);
-
-        IEnumerable<EssayAnalysisDTO> essayAnalysisDtos = new List<EssayAnalysisDTO>();
-
-        await foreach (var essayAnalysis in essayAnalyses)
-        {
-            essayAnalysisDtos.Append(essayAnalysis);
-        }
-
-        /*var rto = new List<EssayAnalysisDTO>();
-
-        foreach (var essay in essays)
-        {
-            if (context.Scores.Count(s => s.EssayId == essay.EssayId) > 1)
-            {
-                Console.WriteLine($"EssayId: {essay.EssayId} with {context.Scores.Count(s => s.EssayId == essay.EssayId)} Scores");   
-            } 
-        }*/
 
         var studentAnalysis = new StudentAnalysisDTO
         {
             StudentId = id,
-            EssayAnalysese = essayAnalysisDtos
+            FirstName = context.Students.Single(s => s.StudentId == id).FirstName,
+            LastName = context.Students.Single(s => s.StudentId == id).LastName,
+            StudentClass = context.Students.Single(s => s.StudentId == id).Class,
+            EssayAnalysese = essayAnalyses
         };
         
         return Results.Ok(studentAnalysis);
     }
+    
+    [Authorize]
+    [HttpGet("class/{id:int}", Name = "GetClassAnalytics")]
+    public IResult GetClassAnalytics(int id)
+    {
+        var students = context.Students.Where(s => s.StudentClassId == id);
+        
+        var studentAnalysisDtos = new List<StudentAnalysisDTO>();
 
-    private async IAsyncEnumerable<EssayAnalysisDTO> GetEssayAnalyses(IEnumerable<Essay> essays)
+        foreach (var student in students)
+        {
+            studentAnalysisDtos.Add( new StudentAnalysisDTO
+            {
+                StudentId = student.StudentId,
+                FirstName = context.Students.Single(s => s.StudentId == student.StudentId).FirstName,
+                LastName = context.Students.Single(s => s.StudentId == student.StudentId).LastName,
+                StudentClass = context.Students.Single(s => s.StudentId == student.StudentId).Class,
+                EssayAnalysese = GetEssayAnalyses(student)
+            });
+        }
+        
+        var classAnalysis = new ClassAnalysisDTO
+        {
+            ClassId = id,
+            StudentAnalysisDtos = studentAnalysisDtos
+        };
+        
+        return Results.Ok(classAnalysis);
+    }
+    
+    private IEnumerable<EssayAnalysisDTO> GetEssayAnalyses(Student student)
+    {
+        var essays = context.Essays.Where(e => e.StudentId == student.StudentId && e.Scores.Count > 0);
+        return GetEssayAnalyses(essays);
+    }
+    
+    private IEnumerable<EssayAnalysisDTO> GetEssayAnalyses(IEnumerable<Essay> essays)
     {
         foreach (var essay in essays)
         {
-            if (await context.Scores.CountAsync(s => s.EssayId == essay.EssayId) > 0)
+            if (context.Scores.Count(s => s.EssayId == essay.EssayId) > 0)
             {
-                yield return new EssayAnalysisDTO
-                {
-                    EssayId = essay.EssayId,
-                    EssayTitle = context.Documents.Single( d => d.EdaiDocumentId == essay.EdaiDocumentId).DocumentName,
-                    Score = context.Scores.Single(s => s.EssayId == essay.EssayId),
-                    Comments = context.FeedbackComments.Where(c => c.RelatedTexts.Any(ic => ic.EssayId == essay.EssayId))
-                };
+                yield return GetEssayAnalysis(essay);
             }
         }
     }
+    
+    private EssayAnalysisDTO GetEssayAnalysis(Essay essay)
+    {
+        return new EssayAnalysisDTO
+        {
+            EssayId = essay.EssayId,
+            AssignmentName = context.Assignments.Single(a => a.AssignmentId == essay.AssignmentId).Name,
+            EssayTitle = context.Documents.Single( d => d.EdaiDocumentId == essay.EdaiDocumentId).DocumentName,
+            Score = context.Scores.Single(s => s.EssayId == essay.EssayId),
+            Comments = context.FeedbackComments.Where(c => c.RelatedTexts.Any(ic => ic.EssayId == essay.EssayId))
+        };
+    }
+
 }

@@ -1,0 +1,88 @@
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using EDAI.Shared.Models.DTO
+@using EDAI.Shared.Models.Entities
+@using EDAI.Shared.Models.Enums
+@using Color = MudBlazor.Color
+@inject HttpClient _Client
+<h3 class="pl-5 pt-5">Create Class</h3>
+
+<MudGrid Class="p-5">
+    @if (_createdStudentClass)
+    {
+        <MudItem xs="12">
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text">Class Created</MudChip>
+        </MudItem>
+    }
+    <MudItem xs="12">
+        <EditForm Model="@_studentClassDto" OnSubmit="CreateStudentClassAsync">
+            <DataAnnotationsValidator/>
+            <MudCard >
+                <MudCardContent>
+                    <MudTextField T="string" @bind-Value="_studentClassDto.School" Label="Name of the school" Required="true" RequiredError="Specify the name of the assignment"/>
+                    <MudTextField T="string" @bind-Value="_studentClassDto.Class" Label="Class name" Required="true" RequiredError="Provide description of assignment"
+                                  Variant="Variant.Outlined"/>
+                    <MudSelect T="OrganisationDto" @bind-Value="_selectedOrganisation" Label="Class">
+                        @foreach (var organisation in _organisations)
+                        {
+                            <MudSelectItem T="OrganisationDto" Value="@organisation">@organisation.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudCardContent>
+            </MudCard>
+        </EditForm>
+    </MudItem>
+</MudGrid>
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    
+    private bool _createdStudentClass = false;
+    private bool _studentClassUnderCreation = false;
+    private OrganisationDto _selectedOrganisation;
+    private bool _validForm;
+    private StudentClassDTO _studentClassDto = new StudentClassDTO();
+    
+    private IEnumerable<OrganisationDto> _organisations = new List<OrganisationDto>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = new JsonSerializerOptions()
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true
+        };
+
+        _organisations = await _Client.GetFromJsonAsync<IEnumerable<OrganisationDto>>("api/Organisation", options);
+
+    }
+
+    private async void CreateStudentClassAsync(EditContext context)
+    {
+        _studentClassUnderCreation = true;
+        StateHasChanged();
+        
+
+        var studentClassResponse = await _Client.PostAsJsonAsync("api/studentclass",_studentClassDto);
+
+        var studentClassId = await studentClassResponse.Content.ReadFromJsonAsync<int>();
+
+        if(studentClassResponse.IsSuccessStatusCode)
+        {
+            Task.Delay(500);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        
+        
+
+        _createdStudentClass = true;
+
+        _studentClassDto = new StudentClassDTO();
+        
+        StateHasChanged();
+    }
+}

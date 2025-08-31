@@ -4,7 +4,10 @@
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Authorization
 @using System.Collections.ObjectModel
+@using EDAI.Client.Components
+@using EDAI.Shared.Models.DTO
 @using EDAI.Shared.Models.Entities
+@inject IDialogService DialogService
 @inject HttpClient _Client
 
 <PageTitle>Manage Students</PageTitle>
@@ -12,6 +15,9 @@
 <MudText Typo="Typo.h3" GutterBottom="true">Manage Students</MudText>
 
 <MudGrid>
+    <MudItem xs="2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.School" @onclick="OpenDialogAsync">Create Class</MudButton>
+    </MudItem>
     <MudItem xs="12">
         <MudDataGrid T="Student" Items="@_students" ReadOnly="false" Dense="false" EditMode="DataGridEditMode.Cell" Filterable="false" Hideable="false" EditTrigger="DataGridEditTrigger.OnRowClick" QuickFilter="_search">
             <ToolBarContent>
@@ -26,7 +32,7 @@
                 <PropertyColumn Property="x => x.LastName"></PropertyColumn>
             </Columns>
             <PagerContent>
-                <MudDataGridPager T = "Student"/>
+                <MudDataGridPager T="Student"/>
             </PagerContent>
         </MudDataGrid>
         <MudButton OnClick="@AddItem" Color="@Color.Success" Class="add-item-btn">Add Student</MudButton>
@@ -74,6 +80,33 @@
             FirstName = "First Name",
             LastName = "Last Name"
         });
+    }
+    
+    private async Task OpenDialogAsync()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            CloseButton = true,
+            MaxWidth = MaxWidth.ExtraLarge,
+            FullWidth = true,
+            NoHeader    = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<StudentClassCreationDialog>("Create Class", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var httpOptions = new JsonSerializerOptions()
+            {
+                ReferenceHandler = ReferenceHandler.Preserve,
+                PropertyNameCaseInsensitive = true
+            };
+
+        }
+
     }
 }
 

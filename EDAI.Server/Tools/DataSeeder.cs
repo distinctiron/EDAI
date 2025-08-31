@@ -60,65 +60,65 @@ public static class DataSeeder
 
         }
         
-        var studentClass = new StudentClass() { Class = "1C", Organisation = organisation1 };
+        var studentClass = new StudentClass() { Class = "2X", Organisation = organisation2 };
         context.Set<StudentClass>().Add(studentClass);
 
         var students = new List<Student>();
             
         students.Add(new Student()
-            { FirstName = "Alice", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Angelina", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add(new Student()
-            { FirstName = " Alma", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Daniel", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Amalie", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Denis", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Anne Mona", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Devin", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Asbjørn", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Emil F", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " August", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Emil S", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Camille", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Francesca", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Carl", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Freja", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Carla", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Frida", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Coco", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Ida", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Ella", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Isabella", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Elsa", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Lærke", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Esther", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Mateusz", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Ida H", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Matt", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Ida C", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "My", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Ingrid", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Philip", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Janus", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Sara", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Jonathan", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Sarah", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Karl", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Silje", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Laura", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Simon", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Luka", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Solvej", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Noah", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Sophia", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Othilia", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Sylvester", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Pelle", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Valdemar", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Theodor", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Vishal", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Timian", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Yelyzaveta", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
         students.Add( new Student()
-            { FirstName = " Ursula", LastName = "Doe", Class = "1C", GraduationYear = 2030, StudentClass = studentClass});
+            { FirstName = "Zen", LastName = "Soda", Class = "2X", GraduationYear = 2027, StudentClass = studentClass});
                 
         context.Set<Student>().AddRange(students);
 
