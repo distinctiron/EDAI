@@ -423,24 +423,24 @@ public class OpenAiService : IOpenAiService
         switch (area,_assignmentType)
         {
             case (FeedbackType.Structure,AssignmentType.STX):
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideGrammarComments.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendation.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammar.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideStructureFeedback.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEssayStructureRecommendation.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEssayStructure.Prompt;
                 break;
             case (FeedbackType.Structure,AssignmentType.HTX):
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideGrammarCommentsHTX.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveGrammarRecommendationHTX.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreGrammarHTX.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideStructureFeedbackHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEssayStructureRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEssayStructureHTX.Prompt;
                 break;
             case (FeedbackType.AssignmentAnswer,AssignmentType.STX):
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideEloquenceComments.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendation.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquence.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideAssignmentAnswerFeedback.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveAssignmentAnswerRecommendation.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreAssignmentAnswer.Prompt;
                 break;
             case (FeedbackType.AssignmentAnswer,AssignmentType.HTX):
-                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideEloquenceCommentsHTX.Prompt;
-                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveEloquenceRecommendationHTX.Prompt;
-                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreEloquenceHTX.Prompt;
+                returnValue.FeedbackPrompt = TextEvaluatingPrompts.ProvideAssignmentAnswerFeedbackHTX.Prompt;
+                returnValue.RecommendationPrompt = TextEvaluatingPrompts.GiveAssignmentAnswerRecommendationHTX.Prompt;
+                returnValue.ScorePrompt = TextEvaluatingPrompts.ScoreAssignmentAnswerHTX.Prompt;
                 break;
             default:
                 throw new Exception("Invalid Area Type");
