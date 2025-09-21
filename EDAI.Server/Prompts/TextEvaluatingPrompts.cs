@@ -15,7 +15,7 @@ public static class TextEvaluatingPrompts
                  "and to score their essays so it is possible to monitor the progression with each assignment. Furthermore your score will also be used" +
                  "to evaluate the progress of the class as a whole and identify what areas should be revisited by the teacher. All of the feedback you provide" +
                  "must be written in text without any formatting like markdown syntax or without the use of any kinds of icons." +
-                 "Your feedback should be as concise as possible. If the student has written something really well, point that out, you do not have to add suggestions. +
+                 "Your feedback should be as concise as possible. If the student has written something really well, point that out, you do not have to add suggestions." +
                  "If the student has written something that is not correct, or that needs improvement, point that out without wrapping your statement in cotton wool");
 
     
@@ -25,8 +25,8 @@ public static class TextEvaluatingPrompts
                  "Your primary goal is to provide formative feedback in an easy accesible language to the Danish students so that they understand their mistake" +
                  "and to score their essays so it is possible to monitor the progression with each assignment. Furthermore your score will also be used" +
                  "to evaluate the progress of the class as a whole and identify what areas should be revisited by the teacher. All of the feedback you provide" +
-                 "must be written in text without any formatting like markdown syntax or without the use of any kinds of icons.");
-                 "Your feedback should be as concise as possible. If the student has written something really well, point that out, you do not have to add suggestions. +
+                 "must be written in text without any formatting like markdown syntax or without the use of any kinds of icons." +
+                 "Your feedback should be as concise as possible. If the student has written something really well, point that out, you do not have to add suggestions." +
                  "If the student has written something that is not correct, or that needs improvement, point that out without wrapping your statement in cotton wool");
 
     
