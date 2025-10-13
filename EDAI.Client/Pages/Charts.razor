@@ -1,0 +1,170 @@
+@page "/charts"
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Chart.js Samples</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="charts-demo">
+    <MudText Typo="Typo.h4" GutterBottom="true">Chart.js integration samples</MudText>
+    <MudText Typo="Typo.body1" Class="mb-6">
+        The examples below showcase three different Chart.js visualizations rendered through a simple JavaScript
+        interop helper. They demonstrate how datasets and options can be passed from C# to Chart.js.
+    </MudText>
+
+    <div class="chart-grid">
+        <MudPaper Elevation="2" Class="chart-card">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly revenue (Line)</MudText>
+            <canvas id="lineChart" width="400" height="300" role="img"></canvas>
+        </MudPaper>
+        <MudPaper Elevation="2" Class="chart-card">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Product mix (Bar)</MudText>
+            <canvas id="barChart" width="400" height="300" role="img"></canvas>
+        </MudPaper>
+        <MudPaper Elevation="2" Class="chart-card">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Team skills (Radar)</MudText>
+            <canvas id="radarChart" width="400" height="300" role="img"></canvas>
+        </MudPaper>
+    </div>
+</MudContainer>
+
+@code {
+    private readonly object _lineChartConfig = new
+    {
+        type = "line",
+        data = new
+        {
+            labels = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul" },
+            datasets = new[]
+            {
+                new
+                {
+                    label = "Current year",
+                    data = new[] { 65, 59, 80, 81, 56, 55, 70 },
+                    borderColor = "#4fc3f7",
+                    backgroundColor = "rgba(79, 195, 247, 0.2)",
+                    tension = 0.4,
+                    fill = true
+                },
+                new
+                {
+                    label = "Last year",
+                    data = new[] { 45, 48, 60, 47, 50, 60, 63 },
+                    borderColor = "#9575cd",
+                    backgroundColor = "rgba(149, 117, 205, 0.2)",
+                    tension = 0.4,
+                    fill = true
+                }
+            }
+        },
+        options = new
+        {
+            responsive = true,
+            plugins = new
+            {
+                legend = new { position = "top" },
+                title = new { display = true, text = "Monthly revenue comparison" }
+            },
+            scales = new
+            {
+                y = new
+                {
+                    beginAtZero = true
+                }
+            }
+        }
+    };
+
+    private readonly object _barChartConfig = new
+    {
+        type = "bar",
+        data = new
+        {
+            labels = new[] { "Analytics", "Integrations", "Support", "Training" },
+            datasets = new[]
+            {
+                new
+                {
+                    label = "Q1",
+                    data = new[] { 35, 25, 20, 10 },
+                    backgroundColor = new[] { "#26a69a", "#ffb74d", "#ef5350", "#42a5f5" }
+                },
+                new
+                {
+                    label = "Q2",
+                    data = new[] { 40, 30, 25, 18 },
+                    backgroundColor = new[] { "#80cbc4", "#ffe082", "#ef9a9a", "#90caf9" }
+                }
+            }
+        },
+        options = new
+        {
+            responsive = true,
+            plugins = new
+            {
+                legend = new { position = "top" },
+                title = new { display = true, text = "Product revenue distribution" }
+            }
+        }
+    };
+
+    private readonly object _radarChartConfig = new
+    {
+        type = "radar",
+        data = new
+        {
+            labels = new[] { "Frontend", "Backend", "DevOps", "UX", "Testing", "Data" },
+            datasets = new[]
+            {
+                new
+                {
+                    label = "Team Alpha",
+                    data = new[] { 8, 7, 6, 5, 9, 7 },
+                    borderColor = "#ff7043",
+                    backgroundColor = "rgba(255, 112, 67, 0.2)",
+                    pointBackgroundColor = "#ff7043"
+                },
+                new
+                {
+                    label = "Team Beta",
+                    data = new[] { 6, 8, 7, 7, 6, 8 },
+                    borderColor = "#66bb6a",
+                    backgroundColor = "rgba(102, 187, 106, 0.2)",
+                    pointBackgroundColor = "#66bb6a"
+                }
+            }
+        },
+        options = new
+        {
+            responsive = true,
+            plugins = new
+            {
+                legend = new { position = "top" },
+                title = new { display = true, text = "Team skill radar" }
+            },
+            scales = new
+            {
+                r = new
+                {
+                    min = 0,
+                    max = 10,
+                    ticks = new
+                    {
+                        stepSize = 2
+                    }
+                }
+            }
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await JSRuntime.InvokeVoidAsync("chartJsInterop.createChart", "lineChart", _lineChartConfig);
+        await JSRuntime.InvokeVoidAsync("chartJsInterop.createChart", "barChart", _barChartConfig);
+        await JSRuntime.InvokeVoidAsync("chartJsInterop.createChart", "radarChart", _radarChartConfig);
+    }
+}
