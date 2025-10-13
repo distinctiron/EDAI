@@ -1,4 +1,5 @@
-using EDAI.Shared.Models.Entities;
+using EDAI.Shared.Models.DTO.OpenAI;
+using ScoreDTO = EDAI.Shared.Models.Entities.ScoreDTO;
 
 namespace EDAI.Shared.Models.DTO;
 
@@ -10,7 +11,7 @@ public class EssayAnalysisDTO
     
     public string AssignmentName { get; set; }
 
-    public Score Score { get; set; }
+    public ScoreDTO Score { get; set; }
     
-    public IEnumerable<FeedbackComment> Comments { get; set; }
+    public IEnumerable<FeedbackCommentDTO> Comments { get; set; }
 }

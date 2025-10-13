@@ -33,5 +33,7 @@ public class MappingProfile : Profile
         CreateMap<StudentClassDTO, StudentClass>();
         CreateMap<Organisation, OrganisationDto>();
         CreateMap<OrganisationDto, Organisation>();
+        CreateMap<FeedbackComment, FeedbackCommentDTO>();
+        CreateMap<FeedbackCommentDTO, FeedbackComment>();
     }
 }
