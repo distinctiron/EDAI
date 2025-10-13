@@ -57,12 +57,12 @@
                     <Columns>
                         <HierarchyColumn T="EssayAnalysisDTO"/>
                         <PropertyColumn Property="s => (s.FirstName + ' ' + s.LastName)" Title="Student"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallScore)" Title="Average Overall Score"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.GrammarScore)" Title="Average Grammar Score"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.ArgumentationScore)" Title="Average Argumentation Score"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.EloquenceScore)" Title="Average Eloquence Score"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.AssignmentAnswerScore)" Title="Average Assignment Answer Score"/>
-                        <PropertyColumn Property="s => s.EssayAnalysese.Average(e => e.Score.OverallStructureScore)" Title="Average Structure Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.OverallScore).ToString() : "No scores")" Title="Average Overall Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.GrammarScore).ToString() : "No scores")" Title="Average Grammar Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.ArgumentationScore).ToString() : "No scores")" Title="Average Argumentation Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.EloquenceScore).ToString() : "No scores")" Title="Average Eloquence Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.AssignmentAnswerScore).ToString() : "No scores")" Title="Average Assignment Answer Score"/>
+                        <PropertyColumn Property="@(s => s.EssayAnalysese.Any() ? s.EssayAnalysese.Average(e => e.Score.OverallStructureScore).ToString() : "No scores")" Title="Average Structure Score"/>
                         <TemplateColumn>
                             <CellTemplate>
                                 <MudIconButton Icon="@Icons.Material.Outlined.Analytics" OnClick="@(()=> Navigation.NavigateTo($"/studentanalysis/{context.Item.StudentId}"))" />
@@ -153,7 +153,7 @@
 
         try
         {
-            _classAnalysis = await _Client.GetFromJsonAsync<ClassAnalysisDTO>($"Analytics/class/{_class.StudentClassId}", options);
+            _classAnalysis = await _Client.GetFromJsonAsync<ClassAnalysisDTO>($"api/Analytics/class/{_class.StudentClassId}", options);
         }
         catch (Exception e)
         {
@@ -212,10 +212,11 @@
             PropertyNameCaseInsensitive = true
         };
 
-        _classes = await _Client.GetFromJsonAsync<IEnumerable<StudentClassDTO>>("Student/getClasses", options);
+        _classes = await _Client.GetFromJsonAsync<IEnumerable<StudentClassDTO>>("api/StudentClass", options);
 
 
     }
+    
 
     
 

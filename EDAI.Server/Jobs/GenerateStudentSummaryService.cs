@@ -8,6 +8,7 @@ using EDAI.Shared.Models.Entities;
 using EDAI.Shared.Models.Enums;
 using EDAI.Shared.Tools;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDAI.Server.Jobs;
 
@@ -19,7 +20,7 @@ public class GenerateStudentSummaryService(IOpenAiService openAiService, IHubCon
         {
             var context = scope.ServiceProvider.GetRequiredService<EdaiContext>();
             
-            var scores = context.Scores.Where(s => s.Essay.StudentId == studentId);
+            var scores = await context.Scores.Where(s => s.Essay.StudentId == studentId).ToListAsync();
             openAiService.InitiateStudentSummaryConversation();
             var studentSummary = await openAiService.GenerateStudentSummary(scores);
 

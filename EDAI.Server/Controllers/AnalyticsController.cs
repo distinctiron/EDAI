@@ -2,9 +2,11 @@
 using EDAI.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using EDAI.Shared.Models.DTO;
+using EDAI.Shared.Models.DTO.OpenAI;
 using EDAI.Shared.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using ScoreDTO = EDAI.Shared.Models.Entities.ScoreDTO;
 
 namespace EDAI.Server.Controllers;
 
@@ -16,16 +18,18 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
     [HttpGet("{id:int}", Name = "GetStudentAnalytics")]
     public async Task<IResult> GetStudentAnalytics(int id)
     {
-        var essays = context.Essays.Where(e => e.StudentId == id && e.Scores.Count > 0);
+        var essays = context.Essays.Where(e => e.StudentId == id && e.Scores.Count > 0).ToList();
 
-        var essayAnalyses = GetEssayAnalyses(essays);
+        var essayAnalyses = GetEssayAnalyses(essays).ToList();
+
+        var student = context.Students.Single(s => s.StudentId == id);
 
         var studentAnalysis = new StudentAnalysisDTO
         {
             StudentId = id,
-            FirstName = context.Students.Single(s => s.StudentId == id).FirstName,
-            LastName = context.Students.Single(s => s.StudentId == id).LastName,
-            StudentClass = context.Students.Single(s => s.StudentId == id).Class,
+            FirstName = student.FirstName,
+            LastName = student.LastName,
+            StudentClass = student.Class,
             EssayAnalysese = essayAnalyses
         };
         
@@ -34,9 +38,9 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
     
     [Authorize]
     [HttpGet("class/{id:int}", Name = "GetClassAnalytics")]
-    public IResult GetClassAnalytics(int id)
+    public async Task<IResult> GetClassAnalytics(int id)
     {
-        var students = context.Students.Where(s => s.StudentClassId == id);
+        var students = await context.Students.Where(s => s.StudentClassId == id).ToListAsync();
         
         var studentAnalysisDtos = new List<StudentAnalysisDTO>();
 
@@ -45,10 +49,10 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
             studentAnalysisDtos.Add( new StudentAnalysisDTO
             {
                 StudentId = student.StudentId,
-                FirstName = context.Students.Single(s => s.StudentId == student.StudentId).FirstName,
-                LastName = context.Students.Single(s => s.StudentId == student.StudentId).LastName,
-                StudentClass = context.Students.Single(s => s.StudentId == student.StudentId).Class,
-                EssayAnalysese = GetEssayAnalyses(student)
+                FirstName = student.FirstName,
+                LastName = student.LastName,
+                StudentClass = student.Class,
+                EssayAnalysese = GetEssayAnalyses(student).ToList()
             });
         }
         
@@ -63,8 +67,8 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
     
     private IEnumerable<EssayAnalysisDTO> GetEssayAnalyses(Student student)
     {
-        var essays = context.Essays.Where(e => e.StudentId == student.StudentId && e.Scores.Count > 0);
-        return GetEssayAnalyses(essays);
+        var essays = context.Essays.Where(e => e.StudentId == student.StudentId && e.Scores.Count > 0).ToList();
+        return GetEssayAnalyses(essays).ToList();
     }
     
     private IEnumerable<EssayAnalysisDTO> GetEssayAnalyses(IEnumerable<Essay> essays)
@@ -78,15 +82,15 @@ public class AnalyticsController(EdaiContext context, IMapper _mapper) : Control
         }
     }
     
-    private EssayAnalysisDTO GetEssayAnalysis(Essay essay)
+    private  EssayAnalysisDTO GetEssayAnalysis(Essay essay)
     {
         return new EssayAnalysisDTO
         {
             EssayId = essay.EssayId,
             AssignmentName = context.Assignments.Single(a => a.AssignmentId == essay.AssignmentId).Name,
             EssayTitle = context.Documents.Single( d => d.EdaiDocumentId == essay.EdaiDocumentId).DocumentName,
-            Score = context.Scores.Single(s => s.EssayId == essay.EssayId),
-            Comments = context.FeedbackComments.Where(c => c.RelatedTexts.Any(ic => ic.EssayId == essay.EssayId))
+            Score = _mapper.Map<ScoreDTO>(context.Scores.Single(s => s.EssayId == essay.EssayId)),
+            Comments = _mapper.Map<IEnumerable<FeedbackCommentDTO>>(context.FeedbackComments.Where(c => c.RelatedTexts.Any(ic => ic.EssayId == essay.EssayId)).ToList()) 
         };
     }
 

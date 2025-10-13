@@ -1,5 +1,3 @@
-using EDAI.Shared.Models.Entities;
-
 namespace EDAI.Shared.Models.DTO;
 
 public class StudentAnalysisDTO
@@ -12,4 +10,5 @@ public class StudentAnalysisDTO
 
     public string StudentClass { get; set; }
     public IEnumerable<EssayAnalysisDTO> EssayAnalysese { get; set; }
+    
 }

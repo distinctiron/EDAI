@@ -80,7 +80,7 @@
                             </MudCardContent>
                         </MudCard>
                         <MudCard Style="justify-self: right; height: 100%">
-                            <MudDataGrid T="FeedbackComment" Items="@context.Item.Comments" ReadOnly="true">
+                            <MudDataGrid T="FeedbackCommentDTO" Items="@context.Item.Comments" ReadOnly="true">
                                 <Columns>
                                     <PropertyColumn Property="c => c.CommentType.ToString()" Title="Type"/>
                                     <PropertyColumn Property="c => c.CommentFeedback" Title="Feedback"/>
